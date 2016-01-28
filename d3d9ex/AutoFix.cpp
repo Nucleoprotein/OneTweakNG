@@ -53,7 +53,7 @@ void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out
 
 bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 {
-	if (AutoFixes::NONE) return false;
+	if (autofix == AutoFixes::NONE) return false;
 
 	auto && fix = behaviorflags_fixes.find(autofix);
 	if (fix != behaviorflags_fixes.end())
@@ -67,7 +67,7 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 
 bool MainContext::ApplyVertexBufferFix(UINT& Length, DWORD& Usage, DWORD& FVF, D3DPOOL& Pool)
 {
-	if (AutoFixes::NONE) return false;
+	if (autofix == AutoFixes::NONE) return false;
 
 	// Final Fantasy XIII
 	if (autofix == FINAL_FANTASY_XIII)
