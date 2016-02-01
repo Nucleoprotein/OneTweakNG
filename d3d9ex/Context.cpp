@@ -130,15 +130,18 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 
 		if (config.GetBorderless())
 		{
-			SetWindowPos(pPresentationParameters->hDeviceWindow, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSIZE | SWP_NOMOVE | SWP_NOSENDCHANGING);
+			int cx = GetSystemMetrics(SM_CXSCREEN);
+			int cy = GetSystemMetrics(SM_CYSCREEN);
+
+			SetWindowPos(pPresentationParameters->hDeviceWindow, HWND_TOP, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 
 			if (config.GetForceWindowedMode())
 			{
-				pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIP;
+				pPresentationParameters->SwapEffect = pPresentationParameters->MultiSampleType == D3DMULTISAMPLE_NONE ? D3DSWAPEFFECT_DISCARD : D3DSWAPEFFECT_FLIP;
 				pPresentationParameters->Windowed = TRUE;
 				pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+				PrintLog("ForceWindowedMode");
 			}
-			PrintLog("ForceWindowedMode: Windowed set to TRUE");
 		}
 
 		if (config.GetHideCursor()) while (::ShowCursor(FALSE) >= 0); // ShowCursor < 0 -> hidden
@@ -158,11 +161,11 @@ bool MainContext::CheckWindow(HWND hWnd)
 
 	PrintLog("HWND 0x%p: ClassName \"%ls\", WindowName: \"%ls\"", hWnd, className.get(), windowName.get());
 
-	bool classname = config.GetWindowClass().compare(className.get()) == 0;
-	bool windowname = config.GetWindowName().compare(windowName.get()) == 0;
-	bool always = config.GetAllWindows();
+	bool class_found = config.GetWindowClass().compare(className.get()) == 0;
+	bool window_found = config.GetWindowName().compare(windowName.get()) == 0;
+	bool force = config.GetAllWindows();
 
-	return classname || windowname || always;
+	return class_found || window_found || force;
 }
 
 void MainContext::ApplyWndProc(HWND hWnd)
@@ -181,7 +184,7 @@ void MainContext::ApplyBorderless(HWND hWnd)
 		LONG_PTR dwExStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
 
 		DWORD new_dwStyle = dwStyle & ~WS_OVERLAPPEDWINDOW;
-		DWORD new_dwExStyle = dwExStyle & ~(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST);
+		DWORD new_dwExStyle = dwExStyle & ~(WS_EX_OVERLAPPEDWINDOW);
 
 		context.TrueSetWindowLongW(hWnd, GWL_STYLE, new_dwStyle);
 		context.TrueSetWindowLongW(hWnd, GWL_EXSTYLE, new_dwExStyle);
@@ -239,7 +242,7 @@ LONG WINAPI MainContext::HookSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLon
 
 		if (nIndex == GWL_EXSTYLE)
 		{
-			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST);
+			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW);
 			PrintLog("SetWindowLongA dwExStyle: %lX->%lX", olddwNewLong, dwNewLong);
 		}
 	}
@@ -259,7 +262,7 @@ LONG WINAPI MainContext::HookSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLon
 
 		if (nIndex == GWL_EXSTYLE)
 		{
-			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW | WS_EX_TOPMOST);
+			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW);
 			PrintLog("SetWindowLongW dwExStyle: %lX->%lX", olddwNewLong, dwNewLong);
 		}
 	}
