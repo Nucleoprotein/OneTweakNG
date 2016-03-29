@@ -97,25 +97,22 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetSwapChain(UINT iSwapChain, IDirect3DSwap
 
 	// Steam Overlay Fix
 	// Add some space, 16bytes should be enough
-	_asm
-	{
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-		nop;
-	}
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
 
 	return m_pWrapped->GetSwapChain(iSwapChain, pSwapChain);
 }
