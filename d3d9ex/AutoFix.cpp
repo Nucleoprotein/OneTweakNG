@@ -72,7 +72,7 @@ bool MainContext::ApplyVertexBufferFix(UINT& Length, DWORD& Usage, DWORD& FVF, D
 	// Final Fantasy XIII
 	if (autofix == FINAL_FANTASY_XIII)
 	{
-		if (Length == 358400 && FVF == 0 && Pool == D3DPOOL_MANAGED) { Usage = D3DUSAGE_DYNAMIC; Pool = D3DPOOL_DEFAULT; }
+		if (Length == 358400 && FVF == 0 && Pool == D3DPOOL_MANAGED) { Usage = D3DUSAGE_DYNAMIC; Pool = D3DPOOL_SYSTEMMEM; }
 		return true;
 	}
 	return false;

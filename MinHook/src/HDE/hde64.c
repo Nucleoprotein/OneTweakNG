@@ -5,7 +5,8 @@
  *
  */
 
-#include <intrin.h>
+#if defined(_M_X64) || defined(__x86_64__)
+
 #include "hde64.h"
 #include "table64.h"
 
@@ -16,7 +17,11 @@ unsigned int hde64_disasm(const void *code, hde64s *hs)
     uint8_t op64 = 0;
 
     // Avoid using memset to reduce the footprint.
+#ifndef _MSC_VER
+    memset((LPBYTE)hs, 0, sizeof(hde64s));
+#else
     __stosb((LPBYTE)hs, 0, sizeof(hde64s));
+#endif
 
     for (x = 16; x; x--)
         switch (c = *p++) {
@@ -328,3 +333,5 @@ unsigned int hde64_disasm(const void *code, hde64s *hs)
 
     return (unsigned int)hs->len;
 }
+
+#endif // defined(_M_X64) || defined(__x86_64__)

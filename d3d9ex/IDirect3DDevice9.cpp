@@ -7,6 +7,8 @@
 
 #include "IDirect3DDevice9.h"
 
+#include <intrin.h>
+
 #define IDirect3DDevice9_PrintLog(...) //PrintLog(format, __VA_ARGS__);
 
 hkIDirect3DDevice9::hkIDirect3DDevice9(IDirect3DDevice9 *pIDirect3DDevice9) {

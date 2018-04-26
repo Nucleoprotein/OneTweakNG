@@ -193,6 +193,7 @@ void MainContext::ApplyBorderless(HWND hWnd)
 		int cy = GetSystemMetrics(SM_CYSCREEN);
 
 		SetWindowPos(hWnd, HWND_TOP, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+		SetFocus(hWnd);
 
 		PrintLog("HWND 0x%p: Borderless dwStyle: %lX->%lX", hWnd, dwStyle, new_dwStyle);
 		PrintLog("HWND 0x%p: Borderless dwExStyle: %lX->%lX", hWnd, dwExStyle, new_dwExStyle);

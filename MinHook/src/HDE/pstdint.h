@@ -1,6 +1,6 @@
 ﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2015 Tsuda Kageyu. All rights reserved.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 // Integer types for HDE.
 typedef INT8   int8_t;

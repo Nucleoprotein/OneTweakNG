@@ -1,6 +1,6 @@
 ﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2015 Tsuda Kageyu.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,17 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <Windows.h>
-#include <TlHelp32.h>
-#include <intrin.h>
-#include <xmmintrin.h>
+#include <windows.h>
+#include <tlhelp32.h>
+#include <limits.h>
 
 #include "../include/MinHook.h"
 #include "buffer.h"
 #include "trampoline.h"
+
+#ifndef ARRAYSIZE
+    #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
+#endif
 
 // Initial capacity of the HOOK_ENTRY buffer.
 #define INITIAL_HOOK_CAPACITY   32
@@ -62,11 +65,11 @@ typedef struct _HOOK_ENTRY
     LPVOID pTrampoline;         // Address of the trampoline function.
     UINT8  backup[8];           // Original prologue of the target function.
 
-    BOOL   patchAbove  : 1;     // Uses the hot patch area.
-    BOOL   isEnabled   : 1;     // Enabled.
-    BOOL   queueEnable : 1;     // Queued for enabling/disabling when != isEnabled.
+    UINT8  patchAbove  : 1;     // Uses the hot patch area.
+    UINT8  isEnabled   : 1;     // Enabled.
+    UINT8  queueEnable : 1;     // Queued for enabling/disabling when != isEnabled.
 
-    UINT   nIP : 3;             // Count of the instruction boundaries.
+    UINT   nIP : 4;             // Count of the instruction boundaries.
     UINT8  oldIPs[8];           // Instruction boundaries of the target function.
     UINT8  newIPs[8];           // Instruction boundaries of the trampoline function.
 } HOOK_ENTRY, *PHOOK_ENTRY;
@@ -170,7 +173,7 @@ static DWORD_PTR FindOldIP(PHOOK_ENTRY pHook, DWORD_PTR ip)
             return (DWORD_PTR)pHook->pTarget + pHook->oldIPs[i];
     }
 
-#ifdef _M_X64
+#if defined(_M_X64) || defined(__x86_64__)
     // Check relay function.
     if (ip == (DWORD_PTR)pHook->pDetour)
         return (DWORD_PTR)pHook->pTarget;
@@ -199,7 +202,7 @@ static void ProcessThreadIPs(HANDLE hThread, UINT pos, UINT action)
     // move IP to the proper address.
 
     CONTEXT c;
-#ifdef _M_X64
+#if defined(_M_X64) || defined(__x86_64__)
     DWORD64 *pIP = &c.Rip;
 #else
     DWORD   *pIP = &c.Eip;
@@ -236,7 +239,7 @@ static void ProcessThreadIPs(HANDLE hThread, UINT pos, UINT action)
             enable = TRUE;
             break;
 
-        case ACTION_APPLY_QUEUED:
+        default: // ACTION_APPLY_QUEUED
             enable = pHook->queueEnable;
             break;
         }
@@ -435,14 +438,13 @@ static VOID EnterSpinLock(VOID)
     SIZE_T spinCount = 0;
 
     // Wait until the flag is FALSE.
-    while (_InterlockedCompareExchange(&g_isLocked, TRUE, FALSE) != FALSE)
+    while (InterlockedCompareExchange(&g_isLocked, TRUE, FALSE) != FALSE)
     {
-        _ReadWriteBarrier();
+        // No need to generate a memory barrier here, since InterlockedCompareExchange()
+        // generates a full memory barrier itself.
 
         // Prevent the loop from being too busy.
-        if (spinCount < 16)
-            _mm_pause();
-        else if (spinCount < 32)
+        if (spinCount < 32)
             Sleep(0);
         else
             Sleep(1);
@@ -454,8 +456,10 @@ static VOID EnterSpinLock(VOID)
 //-------------------------------------------------------------------------
 static VOID LeaveSpinLock(VOID)
 {
-    _ReadWriteBarrier();
-    _InterlockedExchange(&g_isLocked, FALSE);
+    // No need to generate a memory barrier here, since InterlockedExchange()
+    // generates a full memory barrier itself.
+
+    InterlockedExchange(&g_isLocked, FALSE);
 }
 
 //-------------------------------------------------------------------------
@@ -546,8 +550,8 @@ MH_STATUS WINAPI MH_CreateHook(LPVOID pTarget, LPVOID pDetour, LPVOID *ppOrigina
                 {
                     TRAMPOLINE ct;
 
-                    ct.pTarget = pTarget;
-                    ct.pDetour = pDetour;
+                    ct.pTarget     = pTarget;
+                    ct.pDetour     = pDetour;
                     ct.pTrampoline = pBuffer;
                     if (CreateTrampolineFunction(&ct))
                     {
@@ -555,7 +559,7 @@ MH_STATUS WINAPI MH_CreateHook(LPVOID pTarget, LPVOID pDetour, LPVOID *ppOrigina
                         if (pHook != NULL)
                         {
                             pHook->pTarget     = ct.pTarget;
-#ifdef _M_X64
+#if defined(_M_X64) || defined(__x86_64__)
                             pHook->pDetour     = ct.pRelay;
 #else
                             pHook->pDetour     = ct.pDetour;
@@ -827,8 +831,9 @@ MH_STATUS WINAPI MH_ApplyQueued(VOID)
 }
 
 //-------------------------------------------------------------------------
-MH_STATUS WINAPI MH_CreateHookApi(
-    LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour, LPVOID *ppOriginal)
+MH_STATUS WINAPI MH_CreateHookApiEx(
+    LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
+    LPVOID *ppOriginal, LPVOID *ppTarget)
 {
     HMODULE hModule;
     LPVOID  pTarget;
@@ -837,11 +842,21 @@ MH_STATUS WINAPI MH_CreateHookApi(
     if (hModule == NULL)
         return MH_ERROR_MODULE_NOT_FOUND;
 
-    pTarget = GetProcAddress(hModule, pszProcName);
+    pTarget = (LPVOID)GetProcAddress(hModule, pszProcName);
     if (pTarget == NULL)
         return MH_ERROR_FUNCTION_NOT_FOUND;
 
+    if(ppTarget != NULL)
+        *ppTarget = pTarget;
+
     return MH_CreateHook(pTarget, pDetour, ppOriginal);
+}
+
+//-------------------------------------------------------------------------
+MH_STATUS WINAPI MH_CreateHookApi(
+    LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour, LPVOID *ppOriginal)
+{
+   return MH_CreateHookApiEx(pszModule, pszProcName, pDetour, ppOriginal, NULL);
 }
 
 //-------------------------------------------------------------------------
@@ -864,6 +879,8 @@ const char * WINAPI MH_StatusToString(MH_STATUS status)
         MH_ST2STR(MH_ERROR_UNSUPPORTED_FUNCTION)
         MH_ST2STR(MH_ERROR_MEMORY_ALLOC)
         MH_ST2STR(MH_ERROR_MEMORY_PROTECT)
+        MH_ST2STR(MH_ERROR_MODULE_NOT_FOUND)
+        MH_ST2STR(MH_ERROR_FUNCTION_NOT_FOUND)
     }
 
 #undef MH_ST2STR
