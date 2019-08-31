@@ -6,14 +6,16 @@
 #include <memory> 
 #include <string> 
 
-#include "NonCopyable.h"
 #include "StringUtil.h"
 #include "WinUtil.h"
 
 #ifndef LOGGER_DISABLE
-class Logger : NonCopyable
+class Logger 
 {
 public:
+	Logger(const Logger&) = delete;
+	const Logger& operator=(Logger& other) = delete;
+
 	Logger() : m_systime(), m_console(INVALID_HANDLE_VALUE), m_file(INVALID_HANDLE_VALUE)  {}
 
 	Logger::~Logger()

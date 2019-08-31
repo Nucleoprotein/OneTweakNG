@@ -4,13 +4,8 @@
 #pragma once
 #include "d3d9.h"
 
-interface hkIDirect3DDevice9 : public IDirect3DDevice9 {
-	IDirect3DDevice9* m_pWrapped;
-
+interface hkIDirect3DDevice9 final : public IDirect3DDevice9 {
 public:
-	hkIDirect3DDevice9(IDirect3DDevice9 *pIDirect3DDevice9);
-	~hkIDirect3DDevice9();
-	
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
 	STDMETHOD_(ULONG, AddRef)();
@@ -131,5 +126,20 @@ public:
 	STDMETHOD(DrawTriPatch)(UINT Handle, CONST float* pNumSegs, CONST D3DTRIPATCH_INFO* pTriPatchInfo);
 	STDMETHOD(DeletePatch)(UINT Handle);
 	STDMETHOD(CreateQuery)(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
+
+	public:
+		hkIDirect3DDevice9(IDirect3DDevice9 *pIDirect3DDevice9)
+			: m_pWrapped(pIDirect3DDevice9)
+		{
+		}
+
+private:
+	~hkIDirect3DDevice9()
+	{
+		m_pWrapped->Release();
+	}
+
+	LONG m_refCount = 1;
+	IDirect3DDevice9* m_pWrapped;
 };
 

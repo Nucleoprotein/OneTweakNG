@@ -9,31 +9,35 @@
 
 #define IDirect3D9_PrintLog(format, ...) //PrintLog(format, __VA_ARGS__);
 
-hkIDirect3D9::hkIDirect3D9(IDirect3D9 *pIDirect3D9) {
-	PrintLog(__FUNCTION__);
-	m_pWrapped = pIDirect3D9;
-}
-
-hkIDirect3D9::~hkIDirect3D9()
-{
-	PrintLog(__FUNCTION__);
-}
-
 HRESULT APIENTRY hkIDirect3D9::QueryInterface(REFIID riid, void** ppvObj) {
 	PrintLog(__FUNCTION__);
-	return m_pWrapped->QueryInterface(riid, ppvObj);
+	if (ppvObj == nullptr) return E_POINTER;
+
+	if (riid == __uuidof(IUnknown) ||
+		riid == __uuidof(IDirect3D9))
+	{
+		*ppvObj = static_cast<IDirect3D9*>(this);
+		AddRef();
+		return S_OK;
+	}
+
+	*ppvObj = nullptr;
+	return E_NOINTERFACE;
 }
 
 ULONG APIENTRY hkIDirect3D9::AddRef() {
 	PrintLog(__FUNCTION__);
-	return m_pWrapped->AddRef();
+	return _InterlockedIncrement(&m_refCount);
 }
 
 ULONG APIENTRY hkIDirect3D9::Release() {
-	ULONG ref_count = m_pWrapped->Release();
-	PrintLog(__FUNCTION__ " return = %lu", ref_count);
-	if (ref_count == 0) delete this;
-	return ref_count;
+	PrintLog(__FUNCTION__);
+	const LONG ref = _InterlockedDecrement(&m_refCount);
+	if (ref == 0)
+	{
+		delete this;
+	}
+	return ref;
 }
 
 HRESULT APIENTRY hkIDirect3D9::RegisterSoftwareDevice(void* pInitializeFunction) {
@@ -131,18 +135,22 @@ HRESULT APIENTRY hkIDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	if (hFocusWindow == NULL) hFocusWindow = pPresentationParameters->hDeviceWindow;
 	context.ApplyPresentationParameters(pPresentationParameters);
 
-	HRESULT hr = m_pWrapped->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
-	if (SUCCEEDED(hr) && ppReturnedDeviceInterface && *ppReturnedDeviceInterface)
-	{
-		hkIDirect3DDevice9* pIDirect3DDevice9 = new hkIDirect3DDevice9(*ppReturnedDeviceInterface);
-		*ppReturnedDeviceInterface = pIDirect3DDevice9;
-	}
-
 	if (OriginalBehaviorFlags != BehaviorFlags)
 	{
 		std::string BehaviorFlagsString;
 		context.BehaviorFlagsToString(BehaviorFlags, &BehaviorFlagsString);
 		PrintLog("BehaviorFlags changed: %08X %s", BehaviorFlags, BehaviorFlagsString.c_str());
 	}
+
+	IDirect3DDevice9* device = nullptr;
+	HRESULT hr = m_pWrapped->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &device);
+	if (FAILED(hr))
+	{
+		PrintLog("CreateDevice fail with HRESULT: %08X", hr);
+		*ppReturnedDeviceInterface = nullptr;
+		return hr;
+	}
+	
+	*ppReturnedDeviceInterface = new hkIDirect3DDevice9(device);
 	return hr;
 }

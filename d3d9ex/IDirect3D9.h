@@ -4,13 +4,8 @@
 #include "d3d9.h"
 #include "IDirect3DDevice9.h"
 
-interface hkIDirect3D9 : public IDirect3D9 {
-	IDirect3D9* m_pWrapped;
-	
+interface hkIDirect3D9 final : public IDirect3D9 {
 public:
-	hkIDirect3D9(IDirect3D9 *pIDirect3D9);
-	~hkIDirect3D9();
-
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
 	STDMETHOD_(ULONG, AddRef)();
@@ -29,5 +24,21 @@ public:
 	STDMETHOD(GetDeviceCaps)(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps);
 	STDMETHOD_(HMONITOR, GetAdapterMonitor)(UINT Adapter);
 	STDMETHOD(CreateDevice)(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
+
+public:
+	hkIDirect3D9(IDirect3D9 *pIDirect3D9)
+		: m_pWrapped(pIDirect3D9)
+	{
+	}
+
+private:
+	~hkIDirect3D9()
+	{
+		m_pWrapped->Release();
+	}
+
+	LONG m_refCount = 1;
+	IDirect3D9 *m_pWrapped;
 };
+
 

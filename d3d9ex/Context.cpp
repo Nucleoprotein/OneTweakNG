@@ -37,7 +37,7 @@ Config::Config()
 #undef SETTING
 }
 
-MainContext::MainContext()
+MainContext::MainContext() : oldWndProc(nullptr)
 {
 	LogFile("OneTweakNG.log");
 
@@ -170,7 +170,7 @@ bool MainContext::CheckWindow(HWND hWnd)
 
 void MainContext::ApplyWndProc(HWND hWnd)
 {
-	if (config.GetAlwaysActive())
+	if (config.GetAlwaysActive() || config.GetHideCursor())
 	{
 		context.oldWndProc = (WNDPROC)context.TrueSetWindowLongA(hWnd, GWLP_WNDPROC, (LONG_PTR)context.WindowProc);
 	}
@@ -218,7 +218,8 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			if (context.config.GetAlwaysActive())
 				return TRUE;
 
-			while (::ShowCursor(TRUE) < 0);
+			if (!context.config.GetForceHideCursor())
+				while (::ShowCursor(TRUE) < 0);
 			break;
 		}
 
@@ -227,6 +228,10 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			return TRUE;
 
 	}
+
+	if (context.config.GetForceHideCursor())
+		while (::ShowCursor(FALSE) >= 0);
+
 	return CallWindowProc(context.oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 

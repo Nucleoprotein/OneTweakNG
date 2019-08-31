@@ -11,31 +11,34 @@
 
 #define IDirect3DDevice9_PrintLog(...) //PrintLog(format, __VA_ARGS__);
 
-hkIDirect3DDevice9::hkIDirect3DDevice9(IDirect3DDevice9 *pIDirect3DDevice9) {
-	PrintLog(__FUNCTION__);
-	m_pWrapped = pIDirect3DDevice9;
-}
-
-hkIDirect3DDevice9::~hkIDirect3DDevice9()
-{
-	PrintLog(__FUNCTION__);
-}
-
 HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return m_pWrapped->QueryInterface(riid, ppvObj);
+	if (ppvObj == nullptr) return E_POINTER;
+
+	if (riid == __uuidof(IUnknown) ||
+		riid == __uuidof(IDirect3DDevice9))
+	{
+		*ppvObj = static_cast<IDirect3DDevice9*>(this);
+		AddRef();
+		return S_OK;
+	}
+
+	*ppvObj = nullptr;
+	return E_NOINTERFACE;
 }
 
 ULONG APIENTRY hkIDirect3DDevice9::AddRef() {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return m_pWrapped->AddRef();
+	return _InterlockedIncrement(&m_refCount);
 }
 
 ULONG APIENTRY hkIDirect3DDevice9::Release() {
-	ULONG ref_count = m_pWrapped->Release();
-	PrintLog(__FUNCTION__ " return = %lu", ref_count);
-	if (ref_count == 0) delete this;
-	return ref_count;
+	const LONG ref = _InterlockedDecrement(&m_refCount);
+	if (ref == 0)
+	{
+		delete this;
+	}
+	return ref;
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::TestCooperativeLevel() {
@@ -178,8 +181,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::CreateCubeTexture(UINT EdgeLength, UINT Lev
 
 HRESULT APIENTRY hkIDirect3DDevice9::CreateVertexBuffer(UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle) {
 	//PrintLog("hkIDirect3DDevice9::CreateVertexBuffer %08u %x %x %x %p %p", Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
-	context.ApplyVertexBufferFix(Length, Usage, FVF, Pool);
-	return m_pWrapped->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+	return context.ApplyVertexBufferFix(m_pWrapped, Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle) {

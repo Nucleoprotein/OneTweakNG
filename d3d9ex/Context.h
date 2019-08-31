@@ -10,9 +10,12 @@ struct hkIDirect3D9;
 static const char* inifilename = "OneTweakNG.ini";
 #define CONFIG_VERSION 3
 
-class Config : NonCopyable
+class Config
 {
 public:
+	Config(const Config&) = delete;
+	const Config& operator=(Config& other) = delete;
+
 	Config();
 
 #define SETTING(_type, _func, _var, _section, _defaultval) \
@@ -26,8 +29,11 @@ public:
 	public: type(callconv* True##name)(__VA_ARGS__); \
 	private: static type callconv Hook##name(__VA_ARGS__);
 
-class MainContext : NonCopyable
+class MainContext
 {
+	MainContext(const MainContext&) = delete;
+	const MainContext& operator=(MainContext& other) = delete;
+
 	DECLARE_HOOK(IDirect3D9*, WINAPI, Direct3DCreate9, UINT SDKVersion);
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongA, HWND hWnd, int nIndex, LONG dwNewLong);
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongW, HWND hWnd, int nIndex, LONG dwNewLong);
@@ -42,7 +48,7 @@ public:
 
 	bool ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	bool ApplyBehaviorFlagsFix(DWORD* flags);
-	bool ApplyVertexBufferFix(UINT& Length, DWORD& Usage, DWORD& FVF, D3DPOOL& Pool);
+	HRESULT APIENTRY ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
 	bool BehaviorFlagsToString(DWORD BehaviorFlags, std::string* BehaviorFlagsString);
 
 	bool CheckWindow(HWND hWnd);

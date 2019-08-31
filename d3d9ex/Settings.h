@@ -5,6 +5,7 @@ SETTING(bool, BoolValue, AlwaysActive, Options, false);
 SETTING(bool, BoolValue, AutoFix, Options, true);
 SETTING(u32, LongValue, Multisample, Options, 0);
 SETTING(bool, BoolValue, HideCursor, Options, false);
+SETTING(bool, BoolValue, ForceHideCursor, Options, false);
 SETTING(u32, LongValue, BehaviorFlags, Options, 0);
 
 SETTING(bool, BoolValue, Adapter, Adapter, false);

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "Context.h"
+#include "IDirect3DVertexBuffer9.h"
 
 void MainContext::EnableAutoFix()
 {
@@ -65,15 +66,26 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 	return false;
 }
 
-bool MainContext::ApplyVertexBufferFix(UINT& Length, DWORD& Usage, DWORD& FVF, D3DPOOL& Pool)
+HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9 *pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
-	if (autofix == AutoFixes::NONE) return false;
+	if (autofix == AutoFixes::NONE) return pIDirect3DDevice9->CreateVertexBuffer(Length,Usage,FVF,Pool,ppVertexBuffer,pSharedHandle);
 
 	// Final Fantasy XIII
 	if (autofix == FINAL_FANTASY_XIII)
 	{
-		if (Length == 358400 && FVF == 0 && Pool == D3DPOOL_MANAGED) { Usage = D3DUSAGE_DYNAMIC; Pool = D3DPOOL_SYSTEMMEM; }
-		return true;
+		if (Length == 358400 && FVF == 0 && Pool == D3DPOOL_MANAGED) { 
+			Usage = D3DUSAGE_DYNAMIC; Pool = D3DPOOL_SYSTEMMEM;
+
+			//IDirect3DVertexBuffer9* buffer = nullptr;
+			//HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, &buffer, NULL);
+			//if (FAILED(hr))
+			//{
+			//	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+			//}
+
+			//if(ppVertexBuffer) *ppVertexBuffer = new hkIDirect3DVertexBuffer9(pIDirect3DDevice9, buffer);
+			//return hr;
+		}
 	}
-	return false;
+	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
