@@ -26,7 +26,7 @@ public:
 };
 
 #define DECLARE_HOOK(type, callconv, name, ...) \
-	public: type(callconv* True##name)(__VA_ARGS__); \
+	public: type(callconv* True##name)(__VA_ARGS__) = name; \
 	private: static type callconv Hook##name(__VA_ARGS__);
 
 class MainContext

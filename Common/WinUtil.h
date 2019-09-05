@@ -80,7 +80,7 @@ inline void StringPathAppend(std::wstring* path, const std::wstring& more)
 inline bool FileExists(const std::string& path)
 {
 	FILE* filep;
-	if (fopen_s(&filep, path.c_str(), "rb") == 0)
+	if (fopen_s(&filep, path.c_str(), "rb") == 0 && filep != 0)
 	{
 		fclose(filep);
 		return true;

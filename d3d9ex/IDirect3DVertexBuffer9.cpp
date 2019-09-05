@@ -8,9 +8,10 @@
 #include "IDirect3DDevice9.h"
 #include "IDirect3DVertexBuffer9.h"
 
-#define IDirect3DVertexBuffer9_PrintLog(format, ...) //PrintLog(format, __VA_ARGS__);
+#define IDirect3DVertexBuffer9_PrintLog(format, ...) PrintLog(format, __VA_ARGS__);
 
 HRESULT APIENTRY hkIDirect3DVertexBuffer9::QueryInterface(REFIID riid, void** ppvObj) {
+	IDirect3DVertexBuffer9_PrintLog(__FUNCTION__);
 	if (ppvObj == nullptr) return E_POINTER;
 
 	if (riid == __uuidof(IUnknown) ||
@@ -32,6 +33,7 @@ ULONG APIENTRY hkIDirect3DVertexBuffer9::AddRef() {
 }
 
 ULONG APIENTRY hkIDirect3DVertexBuffer9::Release() {
+	IDirect3DVertexBuffer9_PrintLog(__FUNCTION__);
 	const LONG ref = _InterlockedDecrement(&m_refCount);
 	if (ref == 0)
 	{
@@ -52,12 +54,12 @@ HRESULT APIENTRY hkIDirect3DVertexBuffer9::GetDevice(IDirect3DDevice9** ppDevice
 }
 
 HRESULT APIENTRY hkIDirect3DVertexBuffer9::SetPrivateData(REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags) {
-    IDirect3DVertexBuffer9_PrintLog(__FUNCTION__);
+    IDirect3DVertexBuffer9_PrintLog(__FUNCTION__ " %s", GUIDtoStringA(refguid));
     return m_pWrapped->SetPrivateData(refguid, pData, SizeOfData, Flags);
 }
 
 HRESULT APIENTRY hkIDirect3DVertexBuffer9::GetPrivateData(REFGUID refguid, void* pData, DWORD* pSizeOfData) {
-    IDirect3DVertexBuffer9_PrintLog(__FUNCTION__);
+	IDirect3DVertexBuffer9_PrintLog(__FUNCTION__ " %s",  GUIDtoStringA(refguid));
     return m_pWrapped->GetPrivateData(refguid, pData, pSizeOfData);
 }
 

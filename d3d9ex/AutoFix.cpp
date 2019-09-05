@@ -30,7 +30,7 @@ void MainContext::EnableAutoFix()
 const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behaviorflags_fixes =
 {
 	{ RESIDENT_EVIL_4, D3DCREATE_SOFTWARE_VERTEXPROCESSING },
-	{ KINGS_BOUNTY_LEGEND, D3DCREATE_MIXED_VERTEXPROCESSING },
+	{ KINGS_BOUNTY_LEGEND, D3DCREATE_MIXED_VERTEXPROCESSING }
 };
 
 void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out)
@@ -73,8 +73,9 @@ HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9 *pIDirect3DD
 	// Final Fantasy XIII
 	if (autofix == FINAL_FANTASY_XIII)
 	{
-		if (Length == 358400 && FVF == 0 && Pool == D3DPOOL_MANAGED) { 
-			Usage = D3DUSAGE_DYNAMIC; Pool = D3DPOOL_SYSTEMMEM;
+		if (Length == 358400 && Pool == D3DPOOL_MANAGED) { 
+			Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+			Pool = D3DPOOL_SYSTEMMEM;
 
 			//IDirect3DVertexBuffer9* buffer = nullptr;
 			//HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, &buffer, NULL);
