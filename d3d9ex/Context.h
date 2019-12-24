@@ -7,8 +7,8 @@
 
 struct hkIDirect3D9;
 
-static const char* inifilename = "OneTweakNG.ini";
-#define CONFIG_VERSION 3
+static const char* inifilename = "FF13Fix.ini";
+#define CONFIG_VERSION 4
 
 class Config
 {
@@ -70,11 +70,29 @@ private:
 	void EnableAutoFix();
 	AutoFixes autofix = AutoFixes::NONE;
 
+	bool didOneTimeFixes = false;
+
+	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
+	byte* SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS = (byte*)0x00E8D65F;
+	byte* CONTINUOUS_SCAN_INSTRUCTION_ADDRESS = (byte*)0x00820868;
+	byte* ENEMY_SCAN_BOX_CODE_ADDRESS = (byte*)0x0094C920;
+
+	float* framePacerTargetPtr = NULL;
+	UINT backbufferWidth = 0;
+	
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
 	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	WNDPROC oldWndProc;
+
+	void FFXIIIOneTimeFixes();
+	bool FFXIIINOPIngameFrameRateLimitSetter();
+	bool FFXIIISetFrameRateVariables();
+	void ChangeMemoryProtectionToReadWriteExecute(void* address, const int size);
+	void FixMissingEnemyScan();
+	void RemoveContinuousControllerScan();
+	bool areAlmostTheSame(float a, float b);
 };
 
 extern MainContext context;
