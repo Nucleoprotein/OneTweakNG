@@ -8,12 +8,16 @@ Thanks Nucleoprotein for starting this!
 # Installation
 Download the latest [release](https://github.com/rebtd7/FF13Fix/releases) and add both ```dinput8.dll``` and ```FF13Fix.ini``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin```.
 
-You may want to change ```FF13Fix.ini``` if you want to cap the frame rate.
+The frame rate is uncapped by default, but as VSync is enabled it may be limited by your monitor refresh rate.
+
+You can to change ```FF13Fix.ini``` if you want to use the ingame limiter to cap the framerate.
 
 # What this does
 
 ## Removes the awful frame pacer
-I don't see the point in it. It is overly aggressive. I did not see any negative side-effect of disabling it.
+I don't see the point in it. It is overly aggressive. 
+
+I did not see any negative side-effect of disabling it.
 
 ## Removes stuttering caused by new controllers being scanned every second
 This caused stuttering specially if you didn't have a connected controller after the last opening of Steam.
@@ -31,6 +35,9 @@ This seems to make the frame rate more consistent.
 
 ## Changes to where the memory is allocated on certain vertex buffers
 This seems to improve the frame rate. This fix is not new, it is from [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG).
+
+## Uses your desktop monitor refresh rate in full screen mode
+By default the game forced a 60Hz refresh rate in full screen mode. This patches this so the game uses the same refresh rate that you are using in your operating system.
 
 # Other notes
 * This is currently not compatible with GeDoSaTo. 
