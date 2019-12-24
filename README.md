@@ -13,7 +13,7 @@ You may want to change ```FF13Fix.ini``` if you want to cap the frame rate.
 # What this does
 
 ## Removes the awful frame pacer
-I don't see the point in it. It is overly aggressive.
+I don't see the point in it. It is overly aggressive. I did not see any n
 
 ## Removes stuttering caused by new controllers being scanned every second
 This caused stuttering specially if you didn't have a connected controller after the last opening of Steam.
@@ -25,6 +25,9 @@ The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/a
 
 ## Uncaps the frame rate
 I did not see any negatives on unlocking the frame rate, but your mileage may very. If you are having issues, edit ```FF13Fix.ini``` to cap the frame rate.
+
+## Enables Triple Buffering
+This seems to make the frame rate more consistent.
 
 ## Changes to where the memory is allocated on certain vertex buffers
 This seems to improve the frame rate. This fix is not new, it is from [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG).
