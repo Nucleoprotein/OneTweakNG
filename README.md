@@ -3,6 +3,7 @@ Fixes for the PC version of FF13
 
 # Notes
 This is a fork of [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG), containing additional fixes for FF13.
+Thanks Nucleoprotein for starting this!
 
 # Installation
 Download the latest [release](https://github.com/rebtd7/FF13Fix/releases) and add both ```dinput8.dll``` and ```FF13Fix.ini``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin```.
