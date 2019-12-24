@@ -42,3 +42,4 @@ By default the game forced a 60Hz refresh rate in full screen mode. This patches
 # Other notes
 * This is currently not compatible with GeDoSaTo. 
 * I strongly recommend forcing anisotropic filtering on your GPU driver to improve the quality of the textures.
+* Using"Maximum Performance" power management in the GPU driver can also help keeping the frame rate smooth. 
