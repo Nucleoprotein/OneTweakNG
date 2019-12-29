@@ -298,6 +298,11 @@ HWND WINAPI MainContext::HookCreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName
 		return hWnd;
 	}
 
+	if (context.autofix == FINAL_FANTASY_XIII && !context.didOneTimeFixes) {
+		PrintLog("Starting FFXIII one time RAM patches. (HookCreateWindowExA)");
+		context.FFXIIIOneTimeFixes();
+	}
+
 	if (context.CheckWindow(hWnd))
 	{
 		context.ApplyWndProc(hWnd);
@@ -317,7 +322,7 @@ HWND WINAPI MainContext::HookCreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassNam
 	}
 
 	if (context.autofix == FINAL_FANTASY_XIII && !context.didOneTimeFixes) {
-		PrintLog("Starting FFXIII one time RAM patches.");
+		PrintLog("Starting FFXIII one time RAM patches. (HookCreateWindowExW)");
 		context.FFXIIIOneTimeFixes();
 	}
 
