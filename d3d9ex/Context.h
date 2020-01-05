@@ -64,19 +64,31 @@ private:
 		NONE = 0,
 		RESIDENT_EVIL_4,
 		KINGS_BOUNTY_LEGEND,
-		FINAL_FANTASY_XIII
+		FINAL_FANTASY_XIII,
+		FINAL_FANTASY_XIII2,
 	};
 
 	void EnableAutoFix();
+	void FF13_2_CreateSetFrameRateCodeBlock();
+	void FF13_2_InitializeGameAddresses();
 	AutoFixes autofix = AutoFixes::NONE;
 
 	bool didOneTimeFixes = false;
 
 	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
-	byte* SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS = (byte*)0x00E8D65F;
-	byte* CONTINUOUS_SCAN_INSTRUCTION_ADDRESS = (byte*)0x00820868;
-	byte* ENEMY_SCAN_BOX_CODE_ADDRESS = (byte*)0x0094C920;
+	byte* FF13_SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS = (byte*)0x00E8D65F;
+	byte* FF13_CONTINUOUS_SCAN_INSTRUCTION_ADDRESS = (byte*)0x00820868;
+	byte* FF13_ENEMY_SCAN_BOX_CODE_ADDRESS = (byte*)0x0094C920;
 
+	byte* FF13_2_SET_FRAME_RATE_INJECTED_CODE = NULL;
+	byte* ff13_2_continuous_scan_instruction_address;
+	byte* ff13_2_set_frame_rate_address;
+	float** ff13_2_frame_pacer_ptr_address;
+	float ff13_2_targetFrameRate;
+
+	const float FF13_2_30_FPS = 30.0F;
+	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
+	
 	float* framePacerTargetPtr = NULL;
 	UINT backbufferWidth = 0;
 	
@@ -86,13 +98,18 @@ private:
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	WNDPROC oldWndProc;
 
-	void FFXIIIOneTimeFixes();
-	bool FFXIIINOPIngameFrameRateLimitSetter();
-	bool FFXIIISetFrameRateVariables();
 	void ChangeMemoryProtectionToReadWriteExecute(void* address, const int size);
-	void FixMissingEnemyScan();
-	void RemoveContinuousControllerScan();
-	bool areAlmostTheSame(float a, float b);
+
+	void FF13_OneTimeFixes();
+	void FF13_AddHookIngameFrameRateLimitSetter();
+	bool FF13_SetFrameRateVariables();
+	void FF13_FixMissingEnemyScan();
+	void FF13_RemoveContinuousControllerScan();
+
+	void FF13_2_RemoveContinuousControllerScan();
+	void FF13_2_AddHookIngameFrameRateLimitSetter();
+	void FF13_2_OneTimeFixes();
+	bool AreAlmostTheSame(float a, float b);
 };
 
 extern MainContext context;

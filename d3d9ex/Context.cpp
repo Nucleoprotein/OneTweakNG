@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <windows.h>
 
 #include "Wrapper.h"
 
@@ -175,6 +176,16 @@ bool MainContext::CheckWindow(HWND hWnd)
 
 	PrintLog("HWND 0x%p: ClassName \"%ls\", WindowName: \"%ls\"", hWnd, className.get(), windowName.get());
 
+	if (!context.didOneTimeFixes) {
+		if (context.autofix == FINAL_FANTASY_XIII) {
+			PrintLog("Starting FFXIII one time RAM patches.");
+			context.FF13_OneTimeFixes();
+		}
+		else if (context.autofix == FINAL_FANTASY_XIII2 && wcscmp(windowName.get(), L"DIEmWin") == 0) {
+			PrintLog("Starting FFXIII-2 one time RAM patches.");
+			context.FF13_2_OneTimeFixes();
+		}
+	}
 	bool class_found = config.GetWindowClass().compare(className.get()) == 0;
 	bool window_found = config.GetWindowName().compare(windowName.get()) == 0;
 	bool force = config.GetAllWindows();
@@ -298,11 +309,6 @@ HWND WINAPI MainContext::HookCreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName
 		return hWnd;
 	}
 
-	if (context.autofix == FINAL_FANTASY_XIII && !context.didOneTimeFixes) {
-		PrintLog("Starting FFXIII one time RAM patches. (HookCreateWindowExA)");
-		context.FFXIIIOneTimeFixes();
-	}
-
 	if (context.CheckWindow(hWnd))
 	{
 		context.ApplyWndProc(hWnd);
@@ -321,11 +327,6 @@ HWND WINAPI MainContext::HookCreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassNam
 		return hWnd;
 	}
 
-	if (context.autofix == FINAL_FANTASY_XIII && !context.didOneTimeFixes) {
-		PrintLog("Starting FFXIII one time RAM patches. (HookCreateWindowExW)");
-		context.FFXIIIOneTimeFixes();
-	}
-
 	if (context.CheckWindow(hWnd))
 	{
 		context.ApplyWndProc(hWnd);
@@ -333,115 +334,4 @@ HWND WINAPI MainContext::HookCreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassNam
 	}
 
 	return hWnd;
-}
-
-void MainContext::FFXIIIOneTimeFixes() {
-
-	bool successSoFar = true;
-	// The game repeatedly sets the frame rate limit. Disable the instruction that does it.
-	successSoFar &= MainContext::FFXIIINOPIngameFrameRateLimitSetter();
-
-	successSoFar &= MainContext::FFXIIISetFrameRateVariables();
-
-	if (successSoFar) {
-		context.RemoveContinuousControllerScan();
-		context.FixMissingEnemyScan();
-		context.didOneTimeFixes = true;
-	}
-}
-
-void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const int size) {
-	DWORD oldProtection;
-	VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtection);
-}
-
-void MainContext::RemoveContinuousControllerScan() {
-	// Disable continuous controller scanning.
-
-	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
-	context.ChangeMemoryProtectionToReadWriteExecute(CONTINUOUS_SCAN_INSTRUCTION_ADDRESS, 1);
-	// change a jne to jmp
-	*(byte*)CONTINUOUS_SCAN_INSTRUCTION_ADDRESS = 0xEB;
-}
-
-void MainContext::FixMissingEnemyScan() {
-	// This patches the variables that eventually will turn into a RECT to be used in a IDirect3DDevice9::SetScissorRect call. 
-	// The game incorrectly uses the same values here regardless of the resolution.
-
-	PrintLog("Patching libra info box instructions to take in account the game resolution...");
-
-	const float resolutionFactor = (float)context.backbufferWidth / 1280.0F;
-	
-	const uint32_t rectHeight = (uint32_t)ceil(130.0F * resolutionFactor);
-	const uint32_t rectWidth = context.backbufferWidth;
-	const uint32_t rectPosY = (uint32_t)(496.0F * resolutionFactor);
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ENEMY_SCAN_BOX_CODE_ADDRESS, 18);
-
-	//push boxHeight
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 0) = 0x68;
-	*(uint32_t*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 1) = rectHeight;
-
-	// push boxWidth
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 5) = 0x68;
-	*(uint32_t*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 6) = rectWidth;
-
-	// push boxPosY
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 10) = 0x68;
-	*(uint32_t*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 11) = rectPosY;
-
-	// NOP NOP NOP
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 15) = 0x90;
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 16) = 0x90;
-	*(byte*)(ENEMY_SCAN_BOX_CODE_ADDRESS + 17) = 0x90;
-}
-
-bool MainContext::FFXIIINOPIngameFrameRateLimitSetter() {
-	PrintLog("Using the ingame the instruction that sets the frame rate to get the frame rate address.");
-
-	context.ChangeMemoryProtectionToReadWriteExecute(SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS, 5);
-
-	// patching to: mov [framePacerTargetPtr], eax
-	*SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS = 0xA3;
-	*((uint32_t*)(SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS + 1)) = (uint32_t)(&framePacerTargetPtr);
-
-	return true;
-}
-
-bool MainContext::FFXIIISetFrameRateVariables() {
-	if (framePacerTargetPtr) {
-		PrintLog("Frame pacer target frame rate is at address %x", framePacerTargetPtr);
-
-		float* ingameFrameRateFramePacerTarget = framePacerTargetPtr;
-		*ingameFrameRateFramePacerTarget = MAX_FRAME_RATE_LIMIT;
-		PrintLog("Frame pacer disabled.");
-
-		const float frameRateConfig = (float)context.config.GetFFXIIIIngameFrameRateLimit();
-		bool unlimitedFrameRate = areAlmostTheSame(frameRateConfig, -1.0f);
-		bool shouldSetFrameRateLimit = !areAlmostTheSame(frameRateConfig, 0.0f);
-
-		float frameRateLimit = 0;
-
-		if(unlimitedFrameRate){
-			frameRateLimit = MAX_FRAME_RATE_LIMIT;
-		}
-		else {
-			frameRateLimit = frameRateConfig;
-		}
-
-		if (shouldSetFrameRateLimit) {
-			float* ingameFrameRateLimitPtr = framePacerTargetPtr + 1;
-			*ingameFrameRateLimitPtr = frameRateLimit;
-			PrintLog("Target frame rate set to %f", frameRateLimit);
-		}
-	}
-	else {
-		PrintLog("Unable to find frame rate pattern. This is normal if the game still hasn't completely started yet.");
-	}
-
-	return framePacerTargetPtr;
-}
-
-bool MainContext::areAlmostTheSame(float a, float b) {
-	return fabs(a - b) < 0.01f;
 }
