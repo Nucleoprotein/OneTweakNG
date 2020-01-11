@@ -31,7 +31,7 @@ This may make the frame rate more consistent.
 ## Uses your desktop monitor refresh rate in full screen mode
 By default the game forced a 60Hz refresh rate in full screen mode. With this mod the game uses the same refresh rate that you are using in your operating system.
 
-## Changes to where the memory is allocated on certain vertex buffers (FF13 only)
+## Changes to where the memory is allocated on certain vertex buffers
 This considerably improves the frame rate when 2D elements are being disabled on the screen (i.e. minimap or battle menu HUD). This fix is not new, it is from [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG).
 
 ## Fix the enemy scan text on resolutions over 720p (FF13 only)
