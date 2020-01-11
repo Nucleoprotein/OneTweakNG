@@ -133,14 +133,15 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 	return false;
 }
 
-HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9 *pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
+HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
-	if (autofix == AutoFixes::NONE) return pIDirect3DDevice9->CreateVertexBuffer(Length,Usage,FVF,Pool,ppVertexBuffer,pSharedHandle);
-
-	// Final Fantasy XIII
-	if (autofix == FINAL_FANTASY_XIII)
-	{
-		if (Length == 358400 && Pool == D3DPOOL_MANAGED) { 
+	switch (autofix) {
+	case AutoFixes::NONE:
+		return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+	case FINAL_FANTASY_XIII:
+	case FINAL_FANTASY_XIII2:
+		// Both games lock a vertex buffer 358400 before drawing any 2D element on screen (sometimes multiple times per frame)
+		if (Length == 358400 && Pool == D3DPOOL_MANAGED) {
 			Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 			Pool = D3DPOOL_SYSTEMMEM;
 
@@ -154,7 +155,9 @@ HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9 *pIDirect3DD
 			//if(ppVertexBuffer) *ppVertexBuffer = new hkIDirect3DVertexBuffer9(pIDirect3DDevice9, buffer);
 			//return hr;
 		}
+		break;
 	}
+
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
