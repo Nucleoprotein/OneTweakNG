@@ -1,6 +1,8 @@
 # FF13Fix
 Performance and bug fixes for the PC versions of FF13 and FF13-2
 
+https://github.com/rebtd7/FF13Fix
+
 # Notes
 This is a fork of [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG), containing additional fixes for FF13.
 Thanks Nucleoprotein for starting this!
