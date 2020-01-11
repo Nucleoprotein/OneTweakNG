@@ -42,7 +42,7 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 
 	ChangeMemoryProtectionToReadWriteExecute(FF13_2_SET_FRAME_RATE_INJECTED_CODE, blockSize);
 
-	float frameRateConfigValue = context.config.GetFFXIIIIngameFrameRateLimit();
+	float frameRateConfigValue = (float)context.config.GetFFXIIIIngameFrameRateLimit();
 	if (AreAlmostTheSame(frameRateConfigValue, -1.0F) || frameRateConfigValue > FF13_2_MAX_FRAME_CAP) {
 		ff13_2_targetFrameRate = FF13_2_MAX_FRAME_CAP;
 	}
@@ -283,7 +283,7 @@ void MainContext::FF13_2_RemoveContinuousControllerScan() {
 }
 
 void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
-	if (context.AreAlmostTheSame(context.config.GetFFXIIIIngameFrameRateLimit(), 0.0F)) {
+	if (context.AreAlmostTheSame((float)context.config.GetFFXIIIIngameFrameRateLimit(), 0.0F)) {
 		PrintLog("Frame rate should not be changed (config = 0)");
 		return;
 	}
@@ -300,6 +300,10 @@ void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
 void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const int size) {
 	DWORD oldProtection;
 	VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtection);
+}
+
+void MainContext::PrintVersionInfo() {
+	PrintLog("FF13Fix 1.3 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {

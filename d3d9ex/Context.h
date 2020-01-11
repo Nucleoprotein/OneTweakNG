@@ -99,6 +99,8 @@ private:
 	WNDPROC oldWndProc;
 
 	void ChangeMemoryProtectionToReadWriteExecute(void* address, const int size);
+	bool AreAlmostTheSame(float a, float b);
+	void PrintVersionInfo();
 
 	void FF13_OneTimeFixes();
 	void FF13_AddHookIngameFrameRateLimitSetter();
@@ -109,7 +111,6 @@ private:
 	void FF13_2_RemoveContinuousControllerScan();
 	void FF13_2_AddHookIngameFrameRateLimitSetter();
 	void FF13_2_OneTimeFixes();
-	bool AreAlmostTheSame(float a, float b);
 };
 
 extern MainContext context;

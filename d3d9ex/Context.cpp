@@ -41,6 +41,7 @@ Config::Config()
 MainContext::MainContext() : oldWndProc(nullptr)
 {
 	LogFile("FF13Fix.log");
+	PrintVersionInfo();
 
 	if (config.GetAutoFix()) EnableAutoFix();
 
