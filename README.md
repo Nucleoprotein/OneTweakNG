@@ -24,8 +24,9 @@ This caused stuttering specially if you didn't have a connected controller after
 
 Note that if you want to use a controller you need to connect it before opening the game (i.e. this patch removes the hotplugging support)
 
-## Uncaps the frame rate
-I did not see any negatives on unlocking the frame rate, but your mileage may very. If you are having issues, edit ```FF13Fix.ini``` to cap the frame rate.
+## Uncaps the frame rate (optional)
+Using higher frame rates can cause jankness on facial animations during ingame cutscenes.
+See https://github.com/rebtd7/FF13Fix/issues/3
 
 ## Enables Triple Buffering
 This may make the frame rate more consistent.
