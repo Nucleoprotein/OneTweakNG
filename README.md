@@ -10,9 +10,7 @@ Thanks Nucleoprotein for starting this!
 # Installation
 Download the latest [release](https://github.com/rebtd7/FF13Fix/releases) and add both ```dinput8.dll``` and ```FF13Fix.ini``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin``` for FF13 and to the folder ```FINAL FANTASY XIII-2\alba_data\prog\win\bin``` for FF13-2.
 
-The frame rate is uncapped by default, but as VSync is enabled it may be limited by your monitor refresh rate.
-
-You can to change ```FF13Fix.ini``` if you want to use the ingame limiter to cap the framerate.
+You can to change ```FF13Fix.ini``` if you want to change any configuration (e.g. uncap the framerate or disable controller vibration).
 
 # What this does
 
@@ -23,6 +21,9 @@ I don't see the point in it. It is overly aggressive. Disabling this greatly imp
 This caused stuttering specially if you didn't have a connected controller after the last opening of Steam.
 
 Note that if you want to use a controller you need to connect it before opening the game (i.e. this patch removes the hotplugging support)
+
+## Enables controller vibration
+This can be enabled/disabled in the ```FF13Fix.ini``` . 
 
 ## Uncaps the frame rate (optional)
 Using higher frame rates can cause jankness on facial animations during ingame cutscenes.
