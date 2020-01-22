@@ -4,6 +4,7 @@
 #include "d3d9.h"
 #include <MinHook.h>
 #include "SimpleIni.h"
+#include "XInputManager.h"
 
 struct hkIDirect3D9;
 
@@ -44,6 +45,7 @@ class MainContext
 
 public:
 	MainContext();
+	void Foo();
 	~MainContext();
 
 	bool ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
@@ -69,27 +71,34 @@ private:
 	};
 
 	void EnableAutoFix();
-	void FF13_2_CreateSetFrameRateCodeBlock();
-	void FF13_2_InitializeGameAddresses();
+
 	AutoFixes autofix = AutoFixes::NONE;
 
+	std::mutex oneTimeFixesMutex;
 	bool didOneTimeFixes = false;
 
 	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
-	byte* FF13_SET_FRAMERATE_INGAME_INSTRUCTION_ADDRESS = (byte*)0x00E8D65F;
-	byte* FF13_CONTINUOUS_SCAN_INSTRUCTION_ADDRESS = (byte*)0x00820868;
-	byte* FF13_ENEMY_SCAN_BOX_CODE_ADDRESS = (byte*)0x0094C920;
+	float** ff13_frame_pacer_ptr = NULL;
+	byte* ff13_set_framerate_ingame_instruction_address = NULL;
+	byte* ff13_continuous_scan_instruction_address = NULL;
+	byte* ff13_enemy_scan_box_code_address = NULL;
+	byte** ff13_base_controller_input_address_ptr = NULL;
+	byte* ff13_vibration_high_set_zero_address = NULL;
+	byte* ff13_vibration_low_set_zero_address = NULL;
 
 	byte* FF13_2_SET_FRAME_RATE_INJECTED_CODE = NULL;
 	byte* ff13_2_continuous_scan_instruction_address;
 	byte* ff13_2_set_frame_rate_address;
 	float** ff13_2_frame_pacer_ptr_address;
 	float ff13_2_targetFrameRate;
+	byte** ff13_2_base_controller_input_address_ptr = NULL;
+	byte* ff13_2_vibration_high_set_zero_address = NULL;
+	byte* ff13_2_vibration_low_set_zero_address = NULL;
 
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
+	XInputManager* xinputManager;
 	
-	float* framePacerTargetPtr = NULL;
 	UINT backbufferWidth = 0;
 	
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
@@ -102,15 +111,20 @@ private:
 	bool AreAlmostTheSame(float a, float b);
 	void PrintVersionInfo();
 
+	void FF13_InitializeGameAddresses();
 	void FF13_OneTimeFixes();
-	void FF13_AddHookIngameFrameRateLimitSetter();
-	bool FF13_SetFrameRateVariables();
+	void FF13_EnableControllerVibration();
+	void FF13_NOPIngameFrameRateLimitSetter();
+	void FF13_SetFrameRateVariables();
 	void FF13_FixMissingEnemyScan();
 	void FF13_RemoveContinuousControllerScan();
 
+	void FF13_2_CreateSetFrameRateCodeBlock();
+	void FF13_2_InitializeGameAddresses();
 	void FF13_2_RemoveContinuousControllerScan();
 	void FF13_2_AddHookIngameFrameRateLimitSetter();
 	void FF13_2_OneTimeFixes();
+	void FF13_2_EnableControllerVibration();
 };
 
 extern MainContext context;

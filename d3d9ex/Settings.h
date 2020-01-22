@@ -11,6 +11,7 @@ SETTING(bool, BoolValue, ForceHideCursor, Options, false);
 SETTING(u32, LongValue, BehaviorFlags, Options, 0);
 
 SETTING(double, DoubleValue, FFXIIIIngameFrameRateLimit, Options, 0.0);
+SETTING(bool, BoolValue, FFXIIIEnableControllerVibration, Options, true);
 
 SETTING(bool, BoolValue, Adapter, Adapter, false);
 SETTING(u32, LongValue, VendorId, Adapter, 0);
