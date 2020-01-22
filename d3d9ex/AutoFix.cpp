@@ -2,7 +2,6 @@
 
 #include "Context.h"
 #include "IDirect3DVertexBuffer9.h"
-#include <intrin.h>
 
 void MainContext::EnableAutoFix()
 {
