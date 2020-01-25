@@ -113,7 +113,6 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 {
 	if (pPresentationParameters)
 	{
-		context.backbufferWidth = pPresentationParameters->BackBufferWidth;
 		if (config.GetTripleBuffering())
 		{
 			pPresentationParameters->BackBufferCount = 3;

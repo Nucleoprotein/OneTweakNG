@@ -48,7 +48,7 @@ void XInputManager::VibrationLoop()
 		const float vibrationStrengthLowFrequency = *vibration_address_low_frequency;
 		const float vibrationStrengthHighFrequency = *vibration_address_high_frequency;
 		if (vibrationStrengthLowFrequency || vibrationStrengthHighFrequency) {
-			SetControllerVibration(vibrationStrengthLowFrequency * maxVibrationStrength, vibrationStrengthHighFrequency * maxVibrationStrength);
+			SetControllerVibration((WORD)(vibrationStrengthLowFrequency * maxVibrationStrength), (WORD)(vibrationStrengthHighFrequency * maxVibrationStrength));
 			wasVibrating = true;
 		}
 		else if(wasVibrating) {

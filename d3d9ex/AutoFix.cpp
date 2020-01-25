@@ -116,6 +116,8 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_base_controller_input_address_ptr = (byte**)(baseAddr + 0x02411220);
 	ff13_vibration_low_set_zero_address = baseAddr + 0x4210DF;
 	ff13_vibration_high_set_zero_address = baseAddr + 0x4210F3;
+	ff13_internal_res_w = (uint32_t*)(baseAddr + 0x22E5168);
+	ff13_internal_res_h = ff13_internal_res_w + 1;
 }
 
 void MainContext::FF13_OneTimeFixes() {
@@ -167,12 +169,12 @@ void MainContext::FF13_FixMissingEnemyScan() {
 	// The game incorrectly uses the same values here regardless of the resolution.
 
 	PrintLog("Patching libra info box instructions to take in account the game resolution...");
+	const float originalHeight = 720.0F;
+	const float resolutionFactorH = (float)*ff13_internal_res_h / originalHeight;
 
-	const float resolutionFactor = (float)context.backbufferWidth / 1280.0F;
-
-	const uint32_t rectHeight = (uint32_t)ceil(130.0F * resolutionFactor);
-	const uint32_t rectWidth = context.backbufferWidth;
-	const uint32_t rectPosY = (uint32_t)(496.0F * resolutionFactor);
+	const uint32_t rectHeight = (uint32_t)ceil(130.0F * resolutionFactorH);
+	const uint32_t rectWidth = *ff13_internal_res_w;
+	const uint32_t rectPosY = (uint32_t)(496.0F * resolutionFactorH);
 
 	context.ChangeMemoryProtectionToReadWriteExecute(ff13_enemy_scan_box_code_address, 18);
 
@@ -375,7 +377,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.0 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.1 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {

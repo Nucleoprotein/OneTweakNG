@@ -85,6 +85,8 @@ private:
 	byte** ff13_base_controller_input_address_ptr = NULL;
 	byte* ff13_vibration_high_set_zero_address = NULL;
 	byte* ff13_vibration_low_set_zero_address = NULL;
+	uint32_t* ff13_internal_res_w;
+	uint32_t* ff13_internal_res_h;
 
 	byte* FF13_2_SET_FRAME_RATE_INJECTED_CODE = NULL;
 	byte* ff13_2_continuous_scan_instruction_address;
@@ -98,8 +100,6 @@ private:
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
 	XInputManager* xinputManager;
-	
-	UINT backbufferWidth = 0;
 	
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
 	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
