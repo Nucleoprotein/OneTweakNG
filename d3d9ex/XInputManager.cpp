@@ -2,20 +2,19 @@
 #include "XInputManager.h"
 #include <XInput.h>
 
-XInputManager::XInputManager(byte** base_controller_input_address_ptr)
+XInputManager::XInputManager(uint8_t** base_controller_input_address_ptr)
 {
 	xinputThread = std::thread(&XInputManager::Run, this, base_controller_input_address_ptr);
 }
 
-void XInputManager::Run(byte** base_controller_input_address_ptr)
+void XInputManager::Run(uint8_t** base_controller_input_address_ptr)
 {
-	DWORD controllerState;
 	bool hasConnected = false;
 	for (DWORD i = 0; i < XUSER_MAX_COUNT; i++) {
 		XINPUT_STATE state;
 		ZeroMemory(&state, sizeof(XINPUT_STATE));
 
-		controllerState = XInputGetState(i, &state);
+		const DWORD controllerState = XInputGetState(i, &state);
 		if (controllerState == ERROR_SUCCESS) {
 			controllerId = i;
 			hasConnected = true;
@@ -28,7 +27,7 @@ void XInputManager::Run(byte** base_controller_input_address_ptr)
 	}
 }
 
-void XInputManager::WaitAndSetVibrationAddress(byte** base_controller_input_address_ptr)
+void XInputManager::WaitAndSetVibrationAddress(uint8_t** base_controller_input_address_ptr)
 {
 	do {
 		std::this_thread::sleep_for(std::chrono::milliseconds(4));
@@ -47,7 +46,7 @@ void XInputManager::VibrationLoop()
 	while (true) {
 		const float vibrationStrengthLowFrequency = *vibration_address_low_frequency;
 		const float vibrationStrengthHighFrequency = *vibration_address_high_frequency;
-		if (vibrationStrengthLowFrequency || vibrationStrengthHighFrequency) {
+		if (vibrationStrengthLowFrequency > 0.0f || vibrationStrengthHighFrequency > 0.0f) {
 			SetControllerVibration((WORD)(vibrationStrengthLowFrequency * maxVibrationStrength), (WORD)(vibrationStrengthHighFrequency * maxVibrationStrength));
 			wasVibrating = true;
 		}

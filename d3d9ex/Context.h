@@ -79,23 +79,23 @@ private:
 
 	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
 	float** ff13_frame_pacer_ptr = NULL;
-	byte* ff13_set_framerate_ingame_instruction_address = NULL;
-	byte* ff13_continuous_scan_instruction_address = NULL;
-	byte* ff13_enemy_scan_box_code_address = NULL;
-	byte** ff13_base_controller_input_address_ptr = NULL;
-	byte* ff13_vibration_high_set_zero_address = NULL;
-	byte* ff13_vibration_low_set_zero_address = NULL;
+	uint8_t* ff13_set_framerate_ingame_instruction_address = NULL;
+	uint8_t* ff13_continuous_scan_instruction_address = NULL;
+	uint8_t* ff13_enemy_scan_box_code_address = NULL;
+	uint8_t** ff13_base_controller_input_address_ptr = NULL;
+	uint8_t* ff13_vibration_high_set_zero_address = NULL;
+	uint8_t* ff13_vibration_low_set_zero_address = NULL;
 	uint32_t* ff13_internal_res_w;
 	uint32_t* ff13_internal_res_h;
 
-	byte* FF13_2_SET_FRAME_RATE_INJECTED_CODE = NULL;
-	byte* ff13_2_continuous_scan_instruction_address;
-	byte* ff13_2_set_frame_rate_address;
+	uint8_t* FF13_2_SET_FRAME_RATE_INJECTED_CODE = NULL;
+	uint8_t* ff13_2_continuous_scan_instruction_address;
+	uint8_t* ff13_2_set_frame_rate_address;
 	float** ff13_2_frame_pacer_ptr_address;
 	float ff13_2_targetFrameRate;
-	byte** ff13_2_base_controller_input_address_ptr = NULL;
-	byte* ff13_2_vibration_high_set_zero_address = NULL;
-	byte* ff13_2_vibration_low_set_zero_address = NULL;
+	uint8_t** ff13_2_base_controller_input_address_ptr = NULL;
+	uint8_t* ff13_2_vibration_high_set_zero_address = NULL;
+	uint8_t* ff13_2_vibration_low_set_zero_address = NULL;
 
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;

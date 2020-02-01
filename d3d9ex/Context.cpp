@@ -46,22 +46,34 @@ MainContext::MainContext() : oldWndProc(nullptr)
 
 	if (config.GetAutoFix()) EnableAutoFix();
 
-	MH_Initialize();
+	PrintLog("Enabling hooks:");
+	const MH_STATUS initializeHooks = MH_Initialize();
+	PrintLog("initializeHooks = %d", initializeHooks);
 
-	MH_CreateHook(D3D9DLL::Get().Direct3DCreate9, HookDirect3DCreate9, reinterpret_cast<void**>(&TrueDirect3DCreate9));
-	MH_EnableHook(D3D9DLL::Get().Direct3DCreate9);
+	const MH_STATUS createHookDirect3DCreate9 = MH_CreateHook(D3D9DLL::Get().Direct3DCreate9, HookDirect3DCreate9, reinterpret_cast<void**>(&TrueDirect3DCreate9));
+	PrintLog("createHookDirect3DCreate9 = %d", createHookDirect3DCreate9);
+	const MH_STATUS enableHookDirect3DCreate9 = MH_EnableHook(D3D9DLL::Get().Direct3DCreate9);
+	PrintLog("enableHookDirect3DCreate9 = %d", enableHookDirect3DCreate9);
 
-	MH_CreateHook(CreateWindowExA, HookCreateWindowExA, reinterpret_cast<void**>(&TrueCreateWindowExA));
-	MH_EnableHook(CreateWindowExA);
+	const MH_STATUS createHookCreateWindowExA = MH_CreateHook(CreateWindowExA, HookCreateWindowExA, reinterpret_cast<void**>(&TrueCreateWindowExA));
+	PrintLog("createHookCreateWindowExA = %d", createHookCreateWindowExA);
+	const MH_STATUS enableHookCreateWindowExA = MH_EnableHook(CreateWindowExA);
+	PrintLog("enableHookCreateWindowExA = %d", enableHookCreateWindowExA);
 
-	MH_CreateHook(CreateWindowExW, HookCreateWindowExW, reinterpret_cast<void**>(&TrueCreateWindowExW));
-	MH_EnableHook(CreateWindowExW);
+	const MH_STATUS createHookCreateWindowExW = MH_CreateHook(CreateWindowExW, HookCreateWindowExW, reinterpret_cast<void**>(&TrueCreateWindowExW));
+	PrintLog("createHookCreateWindowExW = %d", createHookCreateWindowExW);
+	const MH_STATUS enableHookCreateWindowExW = MH_EnableHook(CreateWindowExW);
+	PrintLog("enableHookCreateWindowExW = %d", enableHookCreateWindowExW);
 
-	MH_CreateHook(SetWindowLongA, HookSetWindowLongA, reinterpret_cast<void**>(&TrueSetWindowLongA));
-	MH_EnableHook(SetWindowLongA);
+	const MH_STATUS createHookSetWindowLongA = MH_CreateHook(SetWindowLongA, HookSetWindowLongA, reinterpret_cast<void**>(&TrueSetWindowLongA));
+	PrintLog("createHookSetWindowLongA = %d", createHookSetWindowLongA);
+	const MH_STATUS enableHookSetWindowLongA = MH_EnableHook(SetWindowLongA);
+	PrintLog("enableHookSetWindowLongA = %d", enableHookSetWindowLongA);
 
-	MH_CreateHook(SetWindowLongW, HookSetWindowLongW, reinterpret_cast<void**>(&TrueSetWindowLongW));
-	MH_EnableHook(SetWindowLongW);
+	const MH_STATUS createHookSetWindowLongW = MH_CreateHook(SetWindowLongW, HookSetWindowLongW, reinterpret_cast<void**>(&TrueSetWindowLongW));
+	PrintLog("createHookSetWindowLongW = %d", createHookSetWindowLongW);
+	const MH_STATUS enableHookSetWindowLongW = MH_EnableHook(SetWindowLongW);
+	PrintLog("enableHookSetWindowLongW = %d", enableHookSetWindowLongW);
 
 
 }

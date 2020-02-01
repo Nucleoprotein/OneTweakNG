@@ -6,9 +6,9 @@ class XInputManager
 	DWORD controllerId = -1;
 	std::thread xinputThread;
 public:
-	XInputManager(byte** base_controller_input_address_ptr);
-	void Run(byte** base_controller_input_address_ptr);
-	void WaitAndSetVibrationAddress(byte** base_controller_input_address_ptr);
+	XInputManager(uint8_t** base_controller_input_address_ptr);
+	void Run(uint8_t** base_controller_input_address_ptr);
+	void WaitAndSetVibrationAddress(uint8_t** base_controller_input_address_ptr);
 	void VibrationLoop();
 	void SetControllerVibration(const WORD& leftMotorVibration, const WORD& rightMotorVibration);
 };

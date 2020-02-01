@@ -176,7 +176,7 @@ public:
 	DWORD(WINAPI* XInputGetCapabilities)(DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES* pCapabilities);
 	VOID(WINAPI* XInputEnable)(BOOL enable);
 	DWORD(WINAPI* XInputGetDSoundAudioDeviceGuids)(DWORD dwUserIndex, GUID* pDSoundRenderGuid, GUID* pDSoundCaptureGuid);
-	DWORD(WINAPI* XInputGetBatteryInformation)(DWORD  dwUserIndex, BYTE devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation);
+	DWORD(WINAPI* XInputGetBatteryInformation)(DWORD  dwUserIndex, uint8_t devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation);
 	DWORD(WINAPI* XInputGetKeystroke)(DWORD dwUserIndex, DWORD dwReserved, PXINPUT_KEYSTROKE pKeystroke);
 
 	// XInput 1.3 undocumented functions
@@ -248,7 +248,7 @@ extern "C"
 		return XINPUTDLL::Get().XInputGetDSoundAudioDeviceGuids(dwUserIndex, pDSoundRenderGuid, pDSoundCaptureGuid);
 	}
 
-	DWORD WINAPI _XInputGetBatteryInformation(DWORD  dwUserIndex, BYTE devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation)
+	DWORD WINAPI _XInputGetBatteryInformation(DWORD  dwUserIndex, uint8_t devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation)
 	{
 		return XINPUTDLL::Get().XInputGetBatteryInformation(dwUserIndex, devType, pBatteryInformation);
 	}

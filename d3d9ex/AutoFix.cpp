@@ -106,14 +106,14 @@ HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DD
 void MainContext::FF13_InitializeGameAddresses()
 {
 	// FF13 always seem to use the same addresses (even if you force ASLR on the OS), but we are calculating the addresses just in case...
-	byte* baseAddr = (byte*)GetModuleHandle(NULL); // Should be 400000
+	uint8_t* baseAddr = (uint8_t*)GetModuleHandle(NULL); // Should be 400000
 	PrintLog("Base Addr = %x", baseAddr);
 
 	ff13_frame_pacer_ptr = (float**)(baseAddr + 0x243E34C);
 	ff13_set_framerate_ingame_instruction_address = baseAddr + 0xA8D65F;
 	ff13_continuous_scan_instruction_address = baseAddr + 0x420868;
 	ff13_enemy_scan_box_code_address = baseAddr + 0x54C920;
-	ff13_base_controller_input_address_ptr = (byte**)(baseAddr + 0x02411220);
+	ff13_base_controller_input_address_ptr = (uint8_t**)(baseAddr + 0x02411220);
 	ff13_vibration_low_set_zero_address = baseAddr + 0x4210DF;
 	ff13_vibration_high_set_zero_address = baseAddr + 0x4210F3;
 	ff13_internal_res_w = (uint32_t*)(baseAddr + 0x22E5168);
@@ -137,6 +137,10 @@ void MainContext::FF13_EnableControllerVibration()
 		PrintLog("Vibration should not be enabled (config file)");
 		return;
 	}
+	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
+		PrintLog("Vibration disabled because FFXIIIDisableIngameControllerHotSwapping is set to false (config file)");
+		return;
+	}
 	PrintLog("Enabling controller vibration...");
 	ChangeMemoryProtectionToReadWriteExecute(ff13_vibration_low_set_zero_address, 5);
 
@@ -156,12 +160,16 @@ void MainContext::FF13_EnableControllerVibration()
 }
 
 void MainContext::FF13_RemoveContinuousControllerScan() {
+	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
+		PrintLog("Continuous controller scanning not disabled (config)");
+		return;
+	}
 	// Disable continuous controller scanning.
 
 	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
 	context.ChangeMemoryProtectionToReadWriteExecute(ff13_continuous_scan_instruction_address, 1);
 	// change a jne to jmp
-	*(byte*)ff13_continuous_scan_instruction_address = 0xEB;
+	*(uint8_t*)ff13_continuous_scan_instruction_address = 0xEB;
 }
 
 void MainContext::FF13_FixMissingEnemyScan() {
@@ -179,21 +187,21 @@ void MainContext::FF13_FixMissingEnemyScan() {
 	context.ChangeMemoryProtectionToReadWriteExecute(ff13_enemy_scan_box_code_address, 18);
 
 	//push rectHeight
-	*(byte*)(ff13_enemy_scan_box_code_address + 0) = 0x68;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 0) = 0x68;
 	*(uint32_t*)(ff13_enemy_scan_box_code_address + 1) = rectHeight;
 
 	// push rectWidth
-	*(byte*)(ff13_enemy_scan_box_code_address + 5) = 0x68;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 5) = 0x68;
 	*(uint32_t*)(ff13_enemy_scan_box_code_address + 6) = rectWidth;
 
 	// push rectPosY
-	*(byte*)(ff13_enemy_scan_box_code_address + 10) = 0x68;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 10) = 0x68;
 	*(uint32_t*)(ff13_enemy_scan_box_code_address + 11) = rectPosY;
 
 	// NOP NOP NOP
-	*(byte*)(ff13_enemy_scan_box_code_address + 15) = 0x90;
-	*(byte*)(ff13_enemy_scan_box_code_address + 16) = 0x90;
-	*(byte*)(ff13_enemy_scan_box_code_address + 17) = 0x90;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 15) = 0x90;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 16) = 0x90;
+	*(uint8_t*)(ff13_enemy_scan_box_code_address + 17) = 0x90;
 }
 
 void MainContext::FF13_NOPIngameFrameRateLimitSetter() {
@@ -284,24 +292,28 @@ void MainContext::FF13_2_EnableControllerVibration()
 void MainContext::FF13_2_InitializeGameAddresses()
 {
 	// FF13-2 uses address space layout randomization (ASLR) so we can't rely on fixed addresses without considering the base address
-	byte* baseAddr = (byte*)GetModuleHandle(NULL);
+	uint8_t* baseAddr = (uint8_t*)GetModuleHandle(NULL);
 	PrintLog("Base Addr = %x", baseAddr);
 
 	ff13_2_continuous_scan_instruction_address = baseAddr + 0x2A6E7F;
 	ff13_2_set_frame_rate_address = baseAddr + 0x802616;
 	ff13_2_frame_pacer_ptr_address = (float**)(baseAddr + 0x4D67208);
-	ff13_2_base_controller_input_address_ptr = (byte**)(baseAddr + 0x212A164);
+	ff13_2_base_controller_input_address_ptr = (uint8_t**)(baseAddr + 0x212A164);
 	ff13_2_vibration_low_set_zero_address = baseAddr + 0x2A7221;
 	ff13_2_vibration_high_set_zero_address = baseAddr + 0x2A7226;
 }
 
 void MainContext::FF13_2_RemoveContinuousControllerScan() {
+	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
+		PrintLog("Continuous controller scanning not disabled (config)");
+		return;
+	}
 	// Disable continuous controller scanning.
 
 	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
 	context.ChangeMemoryProtectionToReadWriteExecute(ff13_2_continuous_scan_instruction_address, 1);
 	// change a jne to jmp
-	*(byte*)ff13_2_continuous_scan_instruction_address = 0xEB;
+	*(uint8_t*)ff13_2_continuous_scan_instruction_address = 0xEB;
 }
 
 void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
@@ -322,7 +334,7 @@ void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
 void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 {
 	const int blockSize = 31;
-	FF13_2_SET_FRAME_RATE_INJECTED_CODE = new byte[blockSize];
+	FF13_2_SET_FRAME_RATE_INJECTED_CODE = new uint8_t[blockSize];
 
 	ChangeMemoryProtectionToReadWriteExecute(FF13_2_SET_FRAME_RATE_INJECTED_CODE, blockSize);
 
@@ -377,7 +389,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.1 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.2 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {
