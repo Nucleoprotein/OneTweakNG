@@ -107,8 +107,8 @@ public:
 	STDMETHOD(GetVertexShaderConstantI)(UINT StartRegister, int* pConstantData, UINT Vector4iCount);
 	STDMETHOD(SetVertexShaderConstantB)(UINT StartRegister, CONST BOOL* pConstantData, UINT  BoolCount);
 	STDMETHOD(GetVertexShaderConstantB)(UINT StartRegister, BOOL* pConstantData, UINT BoolCount);
-	STDMETHOD(SetStreamSource)(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInuint8_ts, UINT Stride);
-	STDMETHOD(GetStreamSource)(UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInuint8_ts, UINT* pStride);
+	STDMETHOD(SetStreamSource)(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride);
+	STDMETHOD(GetStreamSource)(UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInBytes, UINT* pStride);
 	STDMETHOD(SetStreamSourceFreq)(UINT StreamNumber, UINT Setting);
 	STDMETHOD(GetStreamSourceFreq)(UINT StreamNumber, UINT* pSetting);
 	STDMETHOD(SetIndices)(IDirect3DIndexBuffer9* pIndexData);

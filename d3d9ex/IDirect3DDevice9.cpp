@@ -101,7 +101,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetSwapChain(UINT iSwapChain, IDirect3DSwap
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 
 	// Steam Overlay Fix
-	// Add some space, 16uint8_ts should be enough
+	// Add some space, 16bytes should be enough
 	__nop();
 	__nop();
 	__nop();
@@ -549,14 +549,14 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetVertexShaderConstantB(UINT StartRegister
 	return m_pWrapped->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
-HRESULT APIENTRY hkIDirect3DDevice9::SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInuint8_ts, UINT Stride) {
+HRESULT APIENTRY hkIDirect3DDevice9::SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return m_pWrapped->SetStreamSource(StreamNumber, pStreamData, OffsetInuint8_ts, Stride);
+	return m_pWrapped->SetStreamSource(StreamNumber, pStreamData, OffsetInBytes, Stride);
 }
 
-HRESULT APIENTRY hkIDirect3DDevice9::GetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInuint8_ts, UINT* pStride) {
+HRESULT APIENTRY hkIDirect3DDevice9::GetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInBytes, UINT* pStride) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return m_pWrapped->GetStreamSource(StreamNumber, ppStreamData, pOffsetInuint8_ts, pStride);
+	return m_pWrapped->GetStreamSource(StreamNumber, ppStreamData, pOffsetInBytes, pStride);
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::SetStreamSourceFreq(UINT StreamNumber, UINT Setting) {
