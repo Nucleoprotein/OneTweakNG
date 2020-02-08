@@ -41,6 +41,10 @@ This considerably improves the frame rate when 2D elements are being disabled on
 ## Fix the enemy scan text on resolutions over 720p (FF13 only)
 The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/api/d3d9helper/nf-d3d9helper-idirect3ddevice9-setscissorrect) using a rectangle hardcoded with the 720p coordenates. This correct the coordenates and rectangle size in order to fix it.
 
+## Reporting issues
+* Please specify what game are you talking about, post system specs, and post FF13Fix.log
+* Add a save file and steps to reproduce the issue if possible
+
 ## Other notes
 * This is currently not compatible with GeDoSaTo. 
 * I strongly recommend forcing anisotropic filtering on your GPU driver to improve the quality of the textures.
