@@ -45,7 +45,6 @@ class MainContext
 
 public:
 	MainContext();
-	void Foo();
 	~MainContext();
 
 	bool ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
@@ -100,6 +99,7 @@ private:
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
 	XInputManager* xinputManager;
+	std::thread * patchingThread;
 	
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
 	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
@@ -111,6 +111,8 @@ private:
 	bool AreAlmostTheSame(float a, float b);
 	void PrintVersionInfo();
 
+
+	static void FF13_AsyncPatchingLoop();
 	void FF13_InitializeGameAddresses();
 	void FF13_OneTimeFixes();
 	void FF13_EnableControllerVibration();
@@ -119,6 +121,7 @@ private:
 	void FF13_FixMissingEnemyScan();
 	void FF13_RemoveContinuousControllerScan();
 
+	static void FF13_2_AsyncPatchingLoop();
 	void FF13_2_CreateSetFrameRateCodeBlock();
 	void FF13_2_InitializeGameAddresses();
 	void FF13_2_RemoveContinuousControllerScan();

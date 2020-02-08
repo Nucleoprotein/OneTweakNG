@@ -103,6 +103,13 @@ HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DD
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
+void MainContext::FF13_AsyncPatchingLoop() {
+	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	if (*context.ff13_frame_pacer_ptr) {
+		context.FF13_OneTimeFixes();
+	}
+}
+
 void MainContext::FF13_InitializeGameAddresses()
 {
 	// FF13 always seem to use the same addresses (even if you force ASLR on the OS), but we are calculating the addresses just in case...
@@ -122,13 +129,13 @@ void MainContext::FF13_InitializeGameAddresses()
 
 void MainContext::FF13_OneTimeFixes() {
 	MainContext::FF13_NOPIngameFrameRateLimitSetter();
-	MainContext::FF13_SetFrameRateVariables();
 	MainContext::FF13_RemoveContinuousControllerScan();
 	MainContext::FF13_FixMissingEnemyScan();
 	MainContext::FF13_EnableControllerVibration();
-	
+	MainContext::FF13_SetFrameRateVariables();
+
 	PrintLog("Finished FF13 One Time Fixes");
-	MainContext::didOneTimeFixes = true;
+	context.didOneTimeFixes = true;
 }
 
 void MainContext::FF13_EnableControllerVibration()
@@ -250,6 +257,11 @@ void MainContext::FF13_SetFrameRateVariables() {
 	}
 }
 
+void MainContext::FF13_2_AsyncPatchingLoop() {
+	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	context.FF13_2_OneTimeFixes();
+}
+
 void MainContext::FF13_2_OneTimeFixes() {
 
 	if (*ff13_2_frame_pacer_ptr_address) {
@@ -261,6 +273,9 @@ void MainContext::FF13_2_OneTimeFixes() {
 		context.FF13_2_EnableControllerVibration();
 		PrintLog("Finished FF13-2 One Time Fixes");
 		context.didOneTimeFixes = true;
+	}
+	else {
+		PrintLog("Unable to apply FF13-2 One Time Fixes. Report this!");
 	}
 }
 
@@ -389,7 +404,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.2 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.3 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {

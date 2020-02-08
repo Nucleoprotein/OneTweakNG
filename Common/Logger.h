@@ -13,6 +13,7 @@
 class Logger 
 {
 public:
+	std::mutex printLogMutex;
 	Logger(const Logger&) = delete;
 	const Logger& operator=(Logger& other) = delete;
 
@@ -124,6 +125,7 @@ inline void LogConsole(const char* title = nullptr)
 
 inline void PrintLog(const char* format, ...)
 {
+	const std::lock_guard<std::mutex> lock(Logger::Get().printLogMutex);
 	va_list args;
 	va_start(args, format);
 	Logger::Get().Print(format, args);
