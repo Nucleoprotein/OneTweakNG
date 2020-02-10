@@ -95,11 +95,13 @@ private:
 	uint8_t** ff13_2_base_controller_input_address_ptr = NULL;
 	uint8_t* ff13_2_vibration_high_set_zero_address = NULL;
 	uint8_t* ff13_2_vibration_low_set_zero_address = NULL;
+	uint32_t* ff13_2_internal_res_w;
+	uint32_t* ff13_2_internal_res_h;
 
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
 	XInputManager* xinputManager;
-	std::thread * patchingThread;
+	std::thread * patchingThread = NULL;
 	
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
 	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
@@ -112,21 +114,23 @@ private:
 	void PrintVersionInfo();
 
 
-	static void FF13_AsyncPatchingLoop();
+	static void FF13_AsyncPatching();
 	void FF13_InitializeGameAddresses();
 	void FF13_OneTimeFixes();
+	void FF13_Workaround_2560_1440_Res_Bug();
 	void FF13_EnableControllerVibration();
 	void FF13_NOPIngameFrameRateLimitSetter();
 	void FF13_SetFrameRateVariables();
 	void FF13_FixMissingEnemyScan();
 	void FF13_RemoveContinuousControllerScan();
 
-	static void FF13_2_AsyncPatchingLoop();
+	static void FF13_2_AsyncPatching();
 	void FF13_2_CreateSetFrameRateCodeBlock();
 	void FF13_2_InitializeGameAddresses();
 	void FF13_2_RemoveContinuousControllerScan();
 	void FF13_2_AddHookIngameFrameRateLimitSetter();
 	void FF13_2_OneTimeFixes();
+	void FF13_2_Workaround_2560_1440_Res_Bug();
 	void FF13_2_EnableControllerVibration();
 };
 

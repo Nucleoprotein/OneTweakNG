@@ -103,11 +103,9 @@ HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DD
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
-void MainContext::FF13_AsyncPatchingLoop() {
+void MainContext::FF13_AsyncPatching() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	if (*context.ff13_frame_pacer_ptr) {
-		context.FF13_OneTimeFixes();
-	}
+	context.FF13_OneTimeFixes();
 }
 
 void MainContext::FF13_InitializeGameAddresses()
@@ -128,6 +126,7 @@ void MainContext::FF13_InitializeGameAddresses()
 }
 
 void MainContext::FF13_OneTimeFixes() {
+	MainContext::FF13_Workaround_2560_1440_Res_Bug();
 	MainContext::FF13_NOPIngameFrameRateLimitSetter();
 	MainContext::FF13_RemoveContinuousControllerScan();
 	MainContext::FF13_FixMissingEnemyScan();
@@ -137,6 +136,17 @@ void MainContext::FF13_OneTimeFixes() {
 	PrintLog("Finished FF13 One Time Fixes");
 	context.didOneTimeFixes = true;
 }
+
+void MainContext::FF13_Workaround_2560_1440_Res_Bug()
+{
+	if (*ff13_internal_res_w == 2560 && *ff13_internal_res_h == 1440) {
+		// We need to reduce one or another. Increasing the internal res causes crashes. 
+		// Decreasing the internal res width by one pixel causes the last pixel column displayed on the screen to stay black.
+		PrintLog("Applying workaround for resolution 2560x1440 bug.");
+		*ff13_internal_res_w = 2559;
+	}
+}
+
 
 void MainContext::FF13_EnableControllerVibration()
 {
@@ -257,7 +267,7 @@ void MainContext::FF13_SetFrameRateVariables() {
 	}
 }
 
-void MainContext::FF13_2_AsyncPatchingLoop() {
+void MainContext::FF13_2_AsyncPatching() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 	context.FF13_2_OneTimeFixes();
 }
@@ -268,6 +278,7 @@ void MainContext::FF13_2_OneTimeFixes() {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
 		PrintLog("Frame pacer disabled");
 
+		context.FF13_2_Workaround_2560_1440_Res_Bug();
 		context.FF13_2_AddHookIngameFrameRateLimitSetter();
 		context.FF13_2_RemoveContinuousControllerScan();
 		context.FF13_2_EnableControllerVibration();
@@ -278,6 +289,17 @@ void MainContext::FF13_2_OneTimeFixes() {
 		PrintLog("Unable to apply FF13-2 One Time Fixes. Report this!");
 	}
 }
+
+void MainContext::FF13_2_Workaround_2560_1440_Res_Bug()
+{
+	if (*ff13_2_internal_res_w == 2560 && *ff13_2_internal_res_h == 1440) {
+		// We need to reduce one or another. Increasing the internal res causes crashes. 
+		// Decreasing the internal res width by one pixel causes the last pixel column displayed on the screen to stay black.
+		PrintLog("Applying workaround for resolution 2560x1440 bug.");
+		*ff13_2_internal_res_w = 2559;
+	}
+}
+
 
 void MainContext::FF13_2_EnableControllerVibration()
 {
@@ -316,6 +338,8 @@ void MainContext::FF13_2_InitializeGameAddresses()
 	ff13_2_base_controller_input_address_ptr = (uint8_t**)(baseAddr + 0x212A164);
 	ff13_2_vibration_low_set_zero_address = baseAddr + 0x2A7221;
 	ff13_2_vibration_high_set_zero_address = baseAddr + 0x2A7226;
+	ff13_2_internal_res_w = (uint32_t*)(baseAddr + 0x1FA864C);
+	ff13_2_internal_res_h = ff13_2_internal_res_w + 1;
 }
 
 void MainContext::FF13_2_RemoveContinuousControllerScan() {
@@ -404,7 +428,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.3 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.4 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {

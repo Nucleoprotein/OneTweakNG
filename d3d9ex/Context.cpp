@@ -194,16 +194,16 @@ bool MainContext::CheckWindow(HWND hWnd)
 	if (!context.didOneTimeFixes) {
 		if (context.autofix == FINAL_FANTASY_XIII && wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
 			const std::lock_guard<std::mutex> lock(context.oneTimeFixesMutex);
-			if(!context.didOneTimeFixes){
+			if(!context.didOneTimeFixes && patchingThread == NULL){
 				PrintLog("Starting FFXIII one time RAM patches.");
-				patchingThread = new std::thread(&context.FF13_AsyncPatchingLoop);
+				patchingThread = new std::thread(&context.FF13_AsyncPatching);
 			}
 		}
 		else if (context.autofix == FINAL_FANTASY_XIII2 && wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
 			const std::lock_guard<std::mutex> lock(context.oneTimeFixesMutex);
-			if (!context.didOneTimeFixes) {
+			if (!context.didOneTimeFixes && patchingThread == NULL) {
 				PrintLog("Starting FFXIII-2 one time RAM patches.");
-				patchingThread = new std::thread(&context.FF13_2_AsyncPatchingLoop);
+				patchingThread = new std::thread(&context.FF13_2_AsyncPatching);
 			}
 		}
 	}
