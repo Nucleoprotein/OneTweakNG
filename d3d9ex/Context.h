@@ -117,7 +117,7 @@ private:
 	static void FF13_AsyncPatching();
 	void FF13_InitializeGameAddresses();
 	void FF13_OneTimeFixes();
-	void FF13_Workaround_2560_1440_Res_Bug();
+	void FF13_Workaround_1440_Res_Bug();
 	void FF13_EnableControllerVibration();
 	void FF13_NOPIngameFrameRateLimitSetter();
 	void FF13_SetFrameRateVariables();

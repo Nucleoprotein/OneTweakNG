@@ -126,7 +126,7 @@ void MainContext::FF13_InitializeGameAddresses()
 }
 
 void MainContext::FF13_OneTimeFixes() {
-	MainContext::FF13_Workaround_2560_1440_Res_Bug();
+	MainContext::FF13_Workaround_1440_Res_Bug();
 	MainContext::FF13_NOPIngameFrameRateLimitSetter();
 	MainContext::FF13_RemoveContinuousControllerScan();
 	MainContext::FF13_FixMissingEnemyScan();
@@ -137,13 +137,18 @@ void MainContext::FF13_OneTimeFixes() {
 	context.didOneTimeFixes = true;
 }
 
-void MainContext::FF13_Workaround_2560_1440_Res_Bug()
+void MainContext::FF13_Workaround_1440_Res_Bug()
 {
 	if (*ff13_internal_res_w == 2560 && *ff13_internal_res_h == 1440) {
 		// We need to reduce one or another. Increasing the internal res causes crashes. 
 		// Decreasing the internal res width by one pixel causes the last pixel column displayed on the screen to stay black.
 		PrintLog("Applying workaround for resolution 2560x1440 bug.");
 		*ff13_internal_res_w = 2559;
+	}
+	else if (*ff13_internal_res_w == 3440 && *ff13_internal_res_h == 1440) {
+		// Fix ultrawide pixelation also.
+		PrintLog("Applying workaround for resolution 3440x1440 bug.");
+		*ff13_internal_res_w = 3439;
 	}
 }
 
