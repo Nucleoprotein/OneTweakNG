@@ -75,6 +75,13 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 	return false;
 }
 
+void MainContext::ScaleScissorRect(RECT * rect) {
+	rect->left = (LONG) (rect->left * scissor_scaling_factor);
+	rect->top = (LONG) (rect->top * scissor_scaling_factor);
+	rect->right = (LONG)(rect->right * scissor_scaling_factor);
+	rect->bottom = (LONG) (rect-> bottom * scissor_scaling_factor);
+}
+
 HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
 	switch (autofix) {
@@ -123,13 +130,20 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_vibration_high_set_zero_address = baseAddr + 0x4210F3;
 	ff13_internal_res_w = (uint32_t*)(baseAddr + 0x22E5168);
 	ff13_internal_res_h = ff13_internal_res_w + 1;
+	ff13_loading_screen_scissor_scaling_factor_1 = baseAddr + 0x616596;
+	ff13_loading_screen_scissor_scaling_factor_2 = baseAddr + 0x6165BB;
+	ff13_settings_screen_scissor_scaling_factor = baseAddr + 0x572B26;
+	ff13_party_screen_scissor_scaling_factor_1 = baseAddr + 0x668DE9;
+	ff13_party_screen_scissor_scaling_factor_2 = baseAddr + 0x668E1E;
+	ff13_party_screen_scissor_scaling_factor_3 = baseAddr + 0x668E56;
+	ff13_party_screen_scissor_scaling_factor_4 = baseAddr + 0x668E91;
 }
 
 void MainContext::FF13_OneTimeFixes() {
 	MainContext::FF13_Workaround_1440_Res_Bug();
 	MainContext::FF13_NOPIngameFrameRateLimitSetter();
 	MainContext::FF13_RemoveContinuousControllerScan();
-	MainContext::FF13_FixMissingEnemyScan();
+	MainContext::FF13_FixScissorRect();
 	MainContext::FF13_EnableControllerVibration();
 	MainContext::FF13_SetFrameRateVariables();
 
@@ -194,36 +208,64 @@ void MainContext::FF13_RemoveContinuousControllerScan() {
 	*(uint8_t*)ff13_continuous_scan_instruction_address = 0xEB;
 }
 
-void MainContext::FF13_FixMissingEnemyScan() {
-	// This patches the variables that eventually will turn into a RECT to be used in a IDirect3DDevice9::SetScissorRect call. 
-	// The game incorrectly uses the same values here regardless of the resolution.
-
-	PrintLog("Patching libra info box instructions to take in account the game resolution...");
+void MainContext::FF13_FixScissorRect() {
+	PrintLog("Fixing ScissorRect...");
 	const float originalHeight = 720.0F;
 	const float resolutionFactorH = (float)*ff13_internal_res_h / originalHeight;
+	scissor_scaling_factor = resolutionFactorH;
 
-	const uint32_t rectHeight = (uint32_t)ceil(130.0F * resolutionFactorH);
-	const uint32_t rectWidth = *ff13_internal_res_w;
-	const uint32_t rectPosY = (uint32_t)(496.0F * resolutionFactorH);
+	// The game scales some scissor rects, but not all of them.
+	// It seems easier to neuter its internal scaling process and scale everything on our own...
 
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_enemy_scan_box_code_address, 18);
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_1, 3);
+	*(ff13_loading_screen_scissor_scaling_factor_1) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_1 + 1) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_1 + 2) = 0x90; // NOP
 
-	//push rectHeight
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 0) = 0x68;
-	*(uint32_t*)(ff13_enemy_scan_box_code_address + 1) = rectHeight;
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_2, 3);
+	*(ff13_loading_screen_scissor_scaling_factor_2 + 0) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_2 + 1) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_2 + 2) = 0x90; // NOP
 
-	// push rectWidth
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 5) = 0x68;
-	*(uint32_t*)(ff13_enemy_scan_box_code_address + 6) = rectWidth;
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_settings_screen_scissor_scaling_factor, 5);
+	*(ff13_settings_screen_scissor_scaling_factor) = 0x90; // NOP
+	*(ff13_settings_screen_scissor_scaling_factor + 1) = 0x90; // NOP
+	*(ff13_settings_screen_scissor_scaling_factor + 2) = 0x90; // NOP
+	*(ff13_settings_screen_scissor_scaling_factor + 3) = 0x90; // NOP
+	*(ff13_settings_screen_scissor_scaling_factor + 4) = 0x90; // NOP
 
-	// push rectPosY
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 10) = 0x68;
-	*(uint32_t*)(ff13_enemy_scan_box_code_address + 11) = rectPosY;
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_1, 4);
+	*(ff13_party_screen_scissor_scaling_factor_1) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_1 + 1) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_1 + 2) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_1 + 3) = 0x90; // NOP
 
-	// NOP NOP NOP
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 15) = 0x90;
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 16) = 0x90;
-	*(uint8_t*)(ff13_enemy_scan_box_code_address + 17) = 0x90;
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_2, 7);
+	*(ff13_party_screen_scissor_scaling_factor_2) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 1) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 2) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 3) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 4) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 5) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_2 + 6) = 0x90; // NOP
+
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_3, 7);
+	*(ff13_party_screen_scissor_scaling_factor_3) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 1) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 2) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 3) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 4) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 5) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_3 + 6) = 0x90; // NOP
+
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_4, 5);
+	*(ff13_party_screen_scissor_scaling_factor_4) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 1) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 2) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 3) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 4) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 5) = 0x90; // NOP
+	*(ff13_party_screen_scissor_scaling_factor_4 + 6) = 0x90; // NOP
 }
 
 void MainContext::FF13_NOPIngameFrameRateLimitSetter() {
@@ -433,7 +475,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.4 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.5 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {
