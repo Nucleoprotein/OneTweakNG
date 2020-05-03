@@ -426,6 +426,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetCurrentTexturePalette(UINT *PaletteNumbe
 
 HRESULT APIENTRY hkIDirect3DDevice9::SetScissorRect(CONST RECT* pRect) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	context.ScaleScissorRect((RECT*)pRect);
 	return m_pWrapped->SetScissorRect(pRect);
 }
 
