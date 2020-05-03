@@ -87,6 +87,8 @@ private:
 	uint8_t* ff13_vibration_low_set_zero_address = NULL;
 	uint8_t* ff13_loading_screen_scissor_scaling_factor_1 = NULL;
 	uint8_t* ff13_loading_screen_scissor_scaling_factor_2 = NULL;
+	uint8_t* ff13_loading_screen_scissor_scaling_factor_3 = NULL;
+	uint8_t* ff13_loading_screen_scissor_scaling_factor_4 = NULL;
 	uint8_t* ff13_settings_screen_scissor_scaling_factor = NULL;
 	uint8_t* ff13_party_screen_scissor_scaling_factor_1 = NULL;
 	uint8_t* ff13_party_screen_scissor_scaling_factor_2 = NULL;
@@ -109,7 +111,8 @@ private:
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
 
-	float scissor_scaling_factor = 1.0f;
+	float scissor_scaling_factor_w = 1.0f;
+	float scissor_scaling_factor_h = 1.0f;
 
 	XInputManager* xinputManager;
 	std::thread * patchingThread = NULL;

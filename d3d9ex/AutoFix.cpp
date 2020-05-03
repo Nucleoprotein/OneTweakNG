@@ -76,10 +76,10 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 }
 
 void MainContext::ScaleScissorRect(RECT * rect) {
-	rect->left = (LONG) (rect->left * scissor_scaling_factor);
-	rect->top = (LONG) (rect->top * scissor_scaling_factor);
-	rect->right = (LONG)(rect->right * scissor_scaling_factor);
-	rect->bottom = (LONG) (rect-> bottom * scissor_scaling_factor);
+	rect->left = (LONG) (rect->left * scissor_scaling_factor_w);
+	rect->top = (LONG) (rect->top * scissor_scaling_factor_h);
+	rect->right = (LONG)(rect->right * scissor_scaling_factor_w);
+	rect->bottom = (LONG) (rect-> bottom * scissor_scaling_factor_h);
 }
 
 HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
@@ -132,6 +132,8 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_internal_res_h = ff13_internal_res_w + 1;
 	ff13_loading_screen_scissor_scaling_factor_1 = baseAddr + 0x616596;
 	ff13_loading_screen_scissor_scaling_factor_2 = baseAddr + 0x6165BB;
+	ff13_loading_screen_scissor_scaling_factor_3 = baseAddr + 0x61654C;
+	ff13_loading_screen_scissor_scaling_factor_4 = baseAddr + 0x616571;
 	ff13_settings_screen_scissor_scaling_factor = baseAddr + 0x572B26;
 	ff13_party_screen_scissor_scaling_factor_1 = baseAddr + 0x668DE9;
 	ff13_party_screen_scissor_scaling_factor_2 = baseAddr + 0x668E1E;
@@ -210,9 +212,13 @@ void MainContext::FF13_RemoveContinuousControllerScan() {
 
 void MainContext::FF13_FixScissorRect() {
 	PrintLog("Fixing ScissorRect...");
+	const float originalWidth = 1280.0F;
+	const float resolutionFactorW = (float)*ff13_internal_res_w / originalWidth;
+	scissor_scaling_factor_w = resolutionFactorW;
+
 	const float originalHeight = 720.0F;
 	const float resolutionFactorH = (float)*ff13_internal_res_h / originalHeight;
-	scissor_scaling_factor = resolutionFactorH;
+	scissor_scaling_factor_h = resolutionFactorH;
 
 	// The game scales some scissor rects, but not all of them.
 	// It seems easier to neuter its internal scaling process and scale everything on our own...
@@ -226,6 +232,16 @@ void MainContext::FF13_FixScissorRect() {
 	*(ff13_loading_screen_scissor_scaling_factor_2 + 0) = 0x90; // NOP
 	*(ff13_loading_screen_scissor_scaling_factor_2 + 1) = 0x90; // NOP
 	*(ff13_loading_screen_scissor_scaling_factor_2 + 2) = 0x90; // NOP
+
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_3, 3);
+	*(ff13_loading_screen_scissor_scaling_factor_3 + 0) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_3 + 1) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_3 + 2) = 0x90; // NOP
+
+	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_4, 3);
+	*(ff13_loading_screen_scissor_scaling_factor_4 + 0) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_4 + 1) = 0x90; // NOP
+	*(ff13_loading_screen_scissor_scaling_factor_4 + 2) = 0x90; // NOP
 
 	context.ChangeMemoryProtectionToReadWriteExecute(ff13_settings_screen_scissor_scaling_factor, 5);
 	*(ff13_settings_screen_scissor_scaling_factor) = 0x90; // NOP
@@ -475,7 +491,7 @@ void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const 
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.4.5 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.4.6 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {
