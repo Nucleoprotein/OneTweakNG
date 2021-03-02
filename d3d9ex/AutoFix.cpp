@@ -8,28 +8,16 @@ void MainContext::EnableAutoFix()
 	std::string exe_name = ModuleNameA(NULL);
 	std::transform(exe_name.begin(), exe_name.end(), exe_name.begin(), std::tolower);
 
-	if (exe_name == "game.exe" || exe_name == "game.dat")
-	{
-		autofix = RESIDENT_EVIL_4;
-		PrintLog("AutoFix for \"Resident Evil 4\" enabled");
-	}
-
-	if (exe_name == "kb.exe")
-	{
-		autofix = KINGS_BOUNTY_LEGEND;
-		PrintLog("AutoFix for \"Kings Bounty: Legend\" enabled");
-	}
-
 	if (exe_name == "ffxiiiimg.exe")
 	{
-		autofix = FINAL_FANTASY_XIII;
+		autofix = AutoFixes::FINAL_FANTASY_XIII;
 		PrintLog("AutoFix for \"Final Fantasy XIII\" enabled");
 		FF13_InitializeGameAddresses();
 	}
 
 	if (exe_name == "ffxiii2img.exe")
 	{
-		autofix = FINAL_FANTASY_XIII2;
+		autofix = AutoFixes::FINAL_FANTASY_XIII2;
 		PrintLog("AutoFix for \"Final Fantasy XIII-2\" enabled");
 		FF13_2_InitializeGameAddresses();
 		FF13_2_CreateSetFrameRateCodeBlock();
@@ -38,8 +26,7 @@ void MainContext::EnableAutoFix()
 
 const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behaviorflags_fixes =
 {
-	{ RESIDENT_EVIL_4, D3DCREATE_SOFTWARE_VERTEXPROCESSING },
-	{ KINGS_BOUNTY_LEGEND, D3DCREATE_MIXED_VERTEXPROCESSING }
+
 };
 
 void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out)
@@ -75,44 +62,88 @@ bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 	return false;
 }
 
-void MainContext::ScaleScissorRect(RECT * rect) {
-	rect->left = (LONG) (rect->left * scissor_scaling_factor_w);
-	rect->top = (LONG) (rect->top * scissor_scaling_factor_h);
-	rect->right = (LONG)(rect->right * scissor_scaling_factor_w);
-	rect->bottom = (LONG) (rect-> bottom * scissor_scaling_factor_h);
+HRESULT MainContext::SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST RECT* rect)
+{
+	if (rect)
+	{	
+		RECT* r = const_cast<RECT*>(rect);
+		r->left = (LONG)(r->left * scissor_scaling_factor_w);
+		r->top = (LONG)(r->top * scissor_scaling_factor_h);
+		r->right = (LONG)(r->right * scissor_scaling_factor_w);
+		r->bottom = (LONG)(r->bottom * scissor_scaling_factor_h);
+		return pIDirect3DDevice9->SetScissorRect(r);
+	}
+	return pIDirect3DDevice9->SetScissorRect(rect);
 }
 
-HRESULT APIENTRY MainContext::ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
+HRESULT MainContext::SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport)
 {
-	switch (autofix) {
-	case AutoFixes::NONE:
-		return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
-	case FINAL_FANTASY_XIII:
-	case FINAL_FANTASY_XIII2:
+	if (pViewport)
+	{
+		D3DVIEWPORT9* vp = const_cast<D3DVIEWPORT9*>(pViewport);
+		if (pViewport->Width > 1280 && pViewport->Height > 720)
+		{
+			vp->Width--;
+			vp->X++;
+
+			vp->Height--;
+			vp->Y++;
+		}
+		return pIDirect3DDevice9->SetViewport(vp);
+	}
+	return pIDirect3DDevice9->SetViewport(pViewport);
+}
+
+HRESULT MainContext::CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
+{
+	switch (autofix)
+	{
+	case AutoFixes::FINAL_FANTASY_XIII:
+	case AutoFixes::FINAL_FANTASY_XIII2:
 		// Both games lock a vertex buffer 358400 before drawing any 2D element on screen (sometimes multiple times per frame)
 		if (Length == 358400 && Pool == D3DPOOL_MANAGED) {
 			Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 			Pool = D3DPOOL_SYSTEMMEM;
-
-			//IDirect3DVertexBuffer9* buffer = nullptr;
-			//HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, &buffer, NULL);
-			//if (FAILED(hr))
-			//{
-			//	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
-			//}
-
-			//if(ppVertexBuffer) *ppVertexBuffer = new hkIDirect3DVertexBuffer9(pIDirect3DDevice9, buffer);
-			//return hr;
 		}
+
+		// Crashing on Lock/Unlock, why???
+		//	//IDirect3DVertexBuffer9* buffer = nullptr;
+		//	//HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, &buffer, NULL);
+		//	//if (FAILED(hr))
+		//	//{
+		//	//	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+		//	//}
+
+		//	//if(ppVertexBuffer) *ppVertexBuffer = new hkIDirect3DVertexBuffer9(pIDirect3DDevice9, buffer);
+		//	//return hr;
 		break;
 	}
 
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
-void MainContext::FF13_AsyncPatching() {
+void MainContext::OneTimeFix(std::unique_ptr<wchar_t[]>& className)
+{
+	if (wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
+		std::thread fix(&context.Fix_Thread);
+		fix.detach();
+	}
+}
+
+void MainContext::Fix_Thread()
+{
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	context.FF13_OneTimeFixes();
+
+	std::lock_guard<std::mutex> lock(context.fix_mutex);
+	if (context.autofix == AutoFixes::FINAL_FANTASY_XIII) {
+		PrintLog("Starting FFXIII one time RAM patches.");
+		context.FF13_OneTimeFixes();
+	}
+	else if (context.autofix == AutoFixes::FINAL_FANTASY_XIII2) {
+		PrintLog("Starting FFXIII-2 one time RAM patches.");
+		context.FF13_2_OneTimeFixes();
+	}
+	MessageBeep(MB_ICONASTERISK);
 }
 
 void MainContext::FF13_InitializeGameAddresses()
@@ -142,32 +173,14 @@ void MainContext::FF13_InitializeGameAddresses()
 }
 
 void MainContext::FF13_OneTimeFixes() {
-	MainContext::FF13_Workaround_1440_Res_Bug();
-	MainContext::FF13_NOPIngameFrameRateLimitSetter();
-	MainContext::FF13_RemoveContinuousControllerScan();
-	MainContext::FF13_FixScissorRect();
-	MainContext::FF13_EnableControllerVibration();
-	MainContext::FF13_SetFrameRateVariables();
+	FF13_NOPIngameFrameRateLimitSetter();
+	FF13_RemoveContinuousControllerScan();
+	FF13_FixScissorRect();
+	FF13_EnableControllerVibration();
+	FF13_SetFrameRateVariables();
 
 	PrintLog("Finished FF13 One Time Fixes");
-	context.didOneTimeFixes = true;
 }
-
-void MainContext::FF13_Workaround_1440_Res_Bug()
-{
-	if (*ff13_internal_res_w == 2560 && *ff13_internal_res_h == 1440) {
-		// We need to reduce one or another. Increasing the internal res causes crashes. 
-		// Decreasing the internal res width by one pixel causes the last pixel column displayed on the screen to stay black.
-		PrintLog("Applying workaround for resolution 2560x1440 bug.");
-		*ff13_internal_res_w = 2559;
-	}
-	else if (*ff13_internal_res_w == 3440 && *ff13_internal_res_h == 1440) {
-		// Fix ultrawide pixelation also.
-		PrintLog("Applying workaround for resolution 3440x1440 bug.");
-		*ff13_internal_res_w = 3439;
-	}
-}
-
 
 void MainContext::FF13_EnableControllerVibration()
 {
@@ -180,24 +193,14 @@ void MainContext::FF13_EnableControllerVibration()
 		return;
 	}
 	PrintLog("Enabling controller vibration...");
-	ChangeMemoryProtectionToReadWriteExecute(ff13_vibration_low_set_zero_address, 5);
+	MemPatch::Nop(ff13_vibration_low_set_zero_address, 5);
+	MemPatch::Nop(ff13_vibration_high_set_zero_address, 5);
 
-	*ff13_vibration_low_set_zero_address = 0x90;
-	*(ff13_vibration_low_set_zero_address + 1) = 0x90;
-	*(ff13_vibration_low_set_zero_address + 2) = 0x90;
-	*(ff13_vibration_low_set_zero_address + 3) = 0x90;
-	*(ff13_vibration_low_set_zero_address + 4) = 0x90;
-
-	ChangeMemoryProtectionToReadWriteExecute(ff13_vibration_high_set_zero_address, 5);
-	*ff13_vibration_high_set_zero_address = 0x90;
-	*(ff13_vibration_high_set_zero_address + 1) = 0x90;
-	*(ff13_vibration_high_set_zero_address + 2) = 0x90;
-	*(ff13_vibration_high_set_zero_address + 3) = 0x90;
-	*(ff13_vibration_high_set_zero_address + 4) = 0x90;
 	xinputManager = new XInputManager(ff13_base_controller_input_address_ptr);
 }
 
-void MainContext::FF13_RemoveContinuousControllerScan() {
+void MainContext::FF13_RemoveContinuousControllerScan()
+{
 	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
 		PrintLog("Continuous controller scanning not disabled (config)");
 		return;
@@ -205,12 +208,12 @@ void MainContext::FF13_RemoveContinuousControllerScan() {
 	// Disable continuous controller scanning.
 
 	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_continuous_scan_instruction_address, 1);
 	// change a jne to jmp
-	*(uint8_t*)ff13_continuous_scan_instruction_address = 0xEB;
+	MemPatch::Fill(ff13_continuous_scan_instruction_address, 0xEB, 1);
 }
 
-void MainContext::FF13_FixScissorRect() {
+void MainContext::FF13_FixScissorRect()
+{
 	PrintLog("Fixing ScissorRect...");
 	const float originalWidth = 1280.0F;
 	const float resolutionFactorW = (float)*ff13_internal_res_w / originalWidth;
@@ -223,81 +226,25 @@ void MainContext::FF13_FixScissorRect() {
 	// The game scales some scissor rects, but not all of them.
 	// It seems easier to neuter its internal scaling process and scale everything on our own...
 
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_1, 3);
-	*(ff13_loading_screen_scissor_scaling_factor_1) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_1 + 1) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_1 + 2) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_2, 3);
-	*(ff13_loading_screen_scissor_scaling_factor_2 + 0) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_2 + 1) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_2 + 2) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_3, 3);
-	*(ff13_loading_screen_scissor_scaling_factor_3 + 0) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_3 + 1) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_3 + 2) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_loading_screen_scissor_scaling_factor_4, 3);
-	*(ff13_loading_screen_scissor_scaling_factor_4 + 0) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_4 + 1) = 0x90; // NOP
-	*(ff13_loading_screen_scissor_scaling_factor_4 + 2) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_settings_screen_scissor_scaling_factor, 5);
-	*(ff13_settings_screen_scissor_scaling_factor) = 0x90; // NOP
-	*(ff13_settings_screen_scissor_scaling_factor + 1) = 0x90; // NOP
-	*(ff13_settings_screen_scissor_scaling_factor + 2) = 0x90; // NOP
-	*(ff13_settings_screen_scissor_scaling_factor + 3) = 0x90; // NOP
-	*(ff13_settings_screen_scissor_scaling_factor + 4) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_1, 4);
-	*(ff13_party_screen_scissor_scaling_factor_1) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_1 + 1) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_1 + 2) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_1 + 3) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_2, 7);
-	*(ff13_party_screen_scissor_scaling_factor_2) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 1) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 2) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 3) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 4) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 5) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_2 + 6) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_3, 7);
-	*(ff13_party_screen_scissor_scaling_factor_3) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 1) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 2) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 3) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 4) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 5) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_3 + 6) = 0x90; // NOP
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_party_screen_scissor_scaling_factor_4, 5);
-	*(ff13_party_screen_scissor_scaling_factor_4) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 1) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 2) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 3) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 4) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 5) = 0x90; // NOP
-	*(ff13_party_screen_scissor_scaling_factor_4 + 6) = 0x90; // NOP
+	MemPatch::Nop(ff13_loading_screen_scissor_scaling_factor_1, 3);
+	MemPatch::Nop(ff13_loading_screen_scissor_scaling_factor_2, 3);
+	MemPatch::Nop(ff13_loading_screen_scissor_scaling_factor_3, 3);
+	MemPatch::Nop(ff13_loading_screen_scissor_scaling_factor_4, 3);
+	MemPatch::Nop(ff13_settings_screen_scissor_scaling_factor, 5);
+	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_1, 4);
+	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_2, 7);
+	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_3, 7);
+	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_3, 5);
 }
 
-void MainContext::FF13_NOPIngameFrameRateLimitSetter() {
+void MainContext::FF13_NOPIngameFrameRateLimitSetter()
+{
 	PrintLog("NOPing the in-game instruction that sets the frame rate.");
-
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_set_framerate_ingame_instruction_address, 5);
-
-	// patching to: NOP NOP NOP NOP
-	*ff13_set_framerate_ingame_instruction_address = 0x90;
-	*(ff13_set_framerate_ingame_instruction_address + 1) = 0x90;
-	*(ff13_set_framerate_ingame_instruction_address + 2) = 0x90;
-	*(ff13_set_framerate_ingame_instruction_address + 3) = 0x90;
-	*(ff13_set_framerate_ingame_instruction_address + 4) = 0x90;
+	MemPatch::Nop(ff13_set_framerate_ingame_instruction_address, 5);
 }
 
-void MainContext::FF13_SetFrameRateVariables() {
+void MainContext::FF13_SetFrameRateVariables()
+{
 	float* framePacerTargetPtr = *ff13_frame_pacer_ptr;
 	if (framePacerTargetPtr) {
 		PrintLog("Frame pacer target frame rate is at address %x", framePacerTargetPtr);
@@ -306,20 +253,18 @@ void MainContext::FF13_SetFrameRateVariables() {
 		*ingameFrameRateFramePacerTarget = MAX_FRAME_RATE_LIMIT;
 		PrintLog("Frame pacer disabled.");
 
-		const float frameRateConfig = (float)context.config.GetFFXIIIIngameFrameRateLimit();
-		const bool unlimitedFrameRate = AreAlmostTheSame(frameRateConfig, -1.0f);
-		const bool shouldSetFrameRateLimit = !AreAlmostTheSame(frameRateConfig, 0.0f);
+		if (config.GetFFXIIIIngameFrameRateLimit() != 0)
+		{
+			const s32 frameRateConfig = config.GetFFXIIIIngameFrameRateLimit();
+			float frameRateLimit = 0;
 
-		float frameRateLimit = 0;
+			if (frameRateConfig == -1) {
+				frameRateLimit = MAX_FRAME_RATE_LIMIT;
+			}
+			else if (frameRateConfig > 0) {
+				frameRateLimit = (float)std::min(frameRateConfig, (s32)MAX_FRAME_RATE_LIMIT);
+			}
 
-		if (unlimitedFrameRate) {
-			frameRateLimit = MAX_FRAME_RATE_LIMIT;
-		}
-		else {
-			frameRateLimit = frameRateConfig;
-		}
-
-		if (shouldSetFrameRateLimit) {
 			float* ingameFrameRateLimitPtr = framePacerTargetPtr + 1;
 			*ingameFrameRateLimitPtr = frameRateLimit;
 			PrintLog("Target frame rate set to %f", frameRateLimit);
@@ -330,39 +275,21 @@ void MainContext::FF13_SetFrameRateVariables() {
 	}
 }
 
-void MainContext::FF13_2_AsyncPatching() {
-	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	context.FF13_2_OneTimeFixes();
-}
-
-void MainContext::FF13_2_OneTimeFixes() {
-
+void MainContext::FF13_2_OneTimeFixes()
+{
 	if (*ff13_2_frame_pacer_ptr_address) {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
 		PrintLog("Frame pacer disabled");
 
-		context.FF13_2_Workaround_2560_1440_Res_Bug();
-		context.FF13_2_AddHookIngameFrameRateLimitSetter();
-		context.FF13_2_RemoveContinuousControllerScan();
-		context.FF13_2_EnableControllerVibration();
+		FF13_2_AddHookIngameFrameRateLimitSetter();
+		FF13_2_RemoveContinuousControllerScan();
+		FF13_2_EnableControllerVibration();
 		PrintLog("Finished FF13-2 One Time Fixes");
-		context.didOneTimeFixes = true;
 	}
 	else {
 		PrintLog("Unable to apply FF13-2 One Time Fixes. Report this!");
 	}
 }
-
-void MainContext::FF13_2_Workaround_2560_1440_Res_Bug()
-{
-	if (*ff13_2_internal_res_w == 2560 && *ff13_2_internal_res_h == 1440) {
-		// We need to reduce one or another. Increasing the internal res causes crashes. 
-		// Decreasing the internal res width by one pixel causes the last pixel column displayed on the screen to stay black.
-		PrintLog("Applying workaround for resolution 2560x1440 bug.");
-		*ff13_2_internal_res_w = 2559;
-	}
-}
-
 
 void MainContext::FF13_2_EnableControllerVibration()
 {
@@ -371,20 +298,9 @@ void MainContext::FF13_2_EnableControllerVibration()
 		return;
 	}
 	PrintLog("Enabling controller vibration...");
-	ChangeMemoryProtectionToReadWriteExecute(ff13_2_vibration_low_set_zero_address, 5);
 
-	*ff13_2_vibration_low_set_zero_address = 0x90;
-	*(ff13_2_vibration_low_set_zero_address + 1) = 0x90;
-	*(ff13_2_vibration_low_set_zero_address + 2) = 0x90;
-	*(ff13_2_vibration_low_set_zero_address + 3) = 0x90;
-	*(ff13_2_vibration_low_set_zero_address + 4) = 0x90;
-
-	ChangeMemoryProtectionToReadWriteExecute(ff13_2_vibration_high_set_zero_address, 5);
-	*ff13_2_vibration_high_set_zero_address = 0x90;
-	*(ff13_2_vibration_high_set_zero_address + 1) = 0x90;
-	*(ff13_2_vibration_high_set_zero_address + 2) = 0x90;
-	*(ff13_2_vibration_high_set_zero_address + 3) = 0x90;
-	*(ff13_2_vibration_high_set_zero_address + 4) = 0x90;
+	MemPatch::Nop(ff13_2_vibration_low_set_zero_address, 5);
+	MemPatch::Nop(ff13_2_vibration_high_set_zero_address, 5);
 
 	xinputManager = new XInputManager(ff13_2_base_controller_input_address_ptr);
 }
@@ -405,7 +321,8 @@ void MainContext::FF13_2_InitializeGameAddresses()
 	ff13_2_internal_res_h = ff13_2_internal_res_w + 1;
 }
 
-void MainContext::FF13_2_RemoveContinuousControllerScan() {
+void MainContext::FF13_2_RemoveContinuousControllerScan()
+{
 	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
 		PrintLog("Continuous controller scanning not disabled (config)");
 		return;
@@ -413,20 +330,20 @@ void MainContext::FF13_2_RemoveContinuousControllerScan() {
 	// Disable continuous controller scanning.
 
 	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_2_continuous_scan_instruction_address, 1);
 	// change a jne to jmp
-	*(uint8_t*)ff13_2_continuous_scan_instruction_address = 0xEB;
+	MemPatch::Fill(ff13_2_continuous_scan_instruction_address, 0xEB, 1);
 }
 
-void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
-	if (context.AreAlmostTheSame((float)context.config.GetFFXIIIIngameFrameRateLimit(), 0.0F)) {
+void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter()
+{
+	if (config.GetFFXIIIIngameFrameRateLimit() == 0) {
 		PrintLog("Frame rate should not be changed (config = 0)");
 		return;
 	}
 
 	PrintLog("Hooking the instruction that sets the frame rate...");
 
-	context.ChangeMemoryProtectionToReadWriteExecute(ff13_2_set_frame_rate_address, 5);
+	MemPatch::CUnprotect unp(ff13_2_set_frame_rate_address, 5);
 
 	// patching to: jmp FF13_2_SET_FRAME_RATE_INJECTED_CODE
 	*ff13_2_set_frame_rate_address = 0xE9;
@@ -436,16 +353,26 @@ void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter() {
 void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 {
 	const int blockSize = 31;
-	FF13_2_SET_FRAME_RATE_INJECTED_CODE = new uint8_t[blockSize];
-
-	ChangeMemoryProtectionToReadWriteExecute(FF13_2_SET_FRAME_RATE_INJECTED_CODE, blockSize);
-
-	float frameRateConfigValue = (float)context.config.GetFFXIIIIngameFrameRateLimit();
-	if (AreAlmostTheSame(frameRateConfigValue, -1.0F) || frameRateConfigValue > FF13_2_MAX_FRAME_CAP) {
-		ff13_2_targetFrameRate = FF13_2_MAX_FRAME_CAP;
+	FF13_2_SET_FRAME_RATE_INJECTED_CODE = new(std::nothrow) uint8_t[blockSize];
+	if (!FF13_2_SET_FRAME_RATE_INJECTED_CODE) {
+		PrintLog("Failed to initialize FFXIII-2 code block");
+		return;
 	}
-	else {
-		ff13_2_targetFrameRate = frameRateConfigValue;
+	DWORD oldProtect;
+	VirtualProtect(FF13_2_SET_FRAME_RATE_INJECTED_CODE, blockSize, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+	if (config.GetFFXIIIIngameFrameRateLimit() != 0)
+	{
+		const s32 frameRateConfig = config.GetFFXIIIIngameFrameRateLimit();
+
+		if (frameRateConfig == -1) {
+			ff13_2_targetFrameRate = FF13_2_MAX_FRAME_CAP;
+		}
+		else if (frameRateConfig > 0) {
+			ff13_2_targetFrameRate = (float)std::min(frameRateConfig, (s32)FF13_2_MAX_FRAME_CAP);
+		}
+
+		PrintLog("Target frame rate set to %f", ff13_2_targetFrameRate);
 	}
 
 	// movss xmm1,[&FF13_2_30_FPS]
@@ -482,12 +409,6 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 	// jmp ffxiii2img.exe + 80261B
 	*(FF13_2_SET_FRAME_RATE_INJECTED_CODE + 26) = 0xE9;
 	*(uint32_t*)(FF13_2_SET_FRAME_RATE_INJECTED_CODE + 27) = ff13_2_set_frame_rate_address - FF13_2_SET_FRAME_RATE_INJECTED_CODE - 26;
-}
-
-
-void MainContext::ChangeMemoryProtectionToReadWriteExecute(void* address, const int size) {
-	DWORD oldProtection;
-	VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtection);
 }
 
 void MainContext::PrintVersionInfo() {

@@ -5,11 +5,12 @@
 #include <MinHook.h>
 #include "SimpleIni.h"
 #include "XInputManager.h"
+#include "MemPatch.h"
 
 struct hkIDirect3D9;
 
 static const char* inifilename = "FF13Fix.ini";
-#define CONFIG_VERSION 4
+#define CONFIG_VERSION 5
 
 class Config
 {
@@ -21,7 +22,7 @@ public:
 
 #define SETTING(_type, _func, _var, _section, _defaultval) \
 	private: _type _var; \
-	public: const _type& Get##_var() const { return _var; };
+	public: const _type& Get##_section##_var() const { return _var; };
 #include "Settings.h"
 #undef SETTING
 };
@@ -39,9 +40,9 @@ class MainContext
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongA, HWND hWnd, int nIndex, LONG dwNewLong);
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongW, HWND hWnd, int nIndex, LONG dwNewLong);
 	DECLARE_HOOK(HWND, WINAPI, CreateWindowExA, DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName,
-		DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+	DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 	DECLARE_HOOK(HWND, WINAPI, CreateWindowExW, DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName,
-		DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+	DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 
 public:
 	MainContext();
@@ -49,8 +50,9 @@ public:
 
 	bool ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	bool ApplyBehaviorFlagsFix(DWORD* flags);
-	void ScaleScissorRect(RECT * rect);
-	HRESULT APIENTRY ApplyVertexBufferFix(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
+	HRESULT SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST RECT* rect);
+	HRESULT CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
+	HRESULT SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport);
 	bool BehaviorFlagsToString(DWORD BehaviorFlags, std::string* BehaviorFlagsString);
 
 	bool CheckWindow(HWND hWnd);
@@ -61,7 +63,7 @@ public:
 	Config config;
 
 private:
-	enum AutoFixes : u32
+	enum class AutoFixes : u32
 	{
 		NONE = 0,
 		RESIDENT_EVIL_4,
@@ -74,8 +76,7 @@ private:
 
 	AutoFixes autofix = AutoFixes::NONE;
 
-	std::mutex oneTimeFixesMutex;
-	bool didOneTimeFixes = false;
+	std::mutex fix_mutex;
 
 	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
 	float** ff13_frame_pacer_ptr = NULL;
@@ -115,37 +116,33 @@ private:
 	float scissor_scaling_factor_h = 1.0f;
 
 	XInputManager* xinputManager;
-	std::thread * patchingThread = NULL;
-	
+
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
 	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	WNDPROC oldWndProc;
 
-	void ChangeMemoryProtectionToReadWriteExecute(void* address, const int size);
 	bool AreAlmostTheSame(float a, float b);
 	void PrintVersionInfo();
 
-
-	static void FF13_AsyncPatching();
 	void FF13_InitializeGameAddresses();
 	void FF13_OneTimeFixes();
-	void FF13_Workaround_1440_Res_Bug();
 	void FF13_EnableControllerVibration();
 	void FF13_NOPIngameFrameRateLimitSetter();
 	void FF13_SetFrameRateVariables();
 	void FF13_FixScissorRect();
 	void FF13_RemoveContinuousControllerScan();
 
-	static void FF13_2_AsyncPatching();
 	void FF13_2_CreateSetFrameRateCodeBlock();
 	void FF13_2_InitializeGameAddresses();
 	void FF13_2_RemoveContinuousControllerScan();
 	void FF13_2_AddHookIngameFrameRateLimitSetter();
 	void FF13_2_OneTimeFixes();
-	void FF13_2_Workaround_2560_1440_Res_Bug();
 	void FF13_2_EnableControllerVibration();
+
+	void OneTimeFix(std::unique_ptr<wchar_t[]>& className);
+	static void Fix_Thread();
 };
 
 extern MainContext context;

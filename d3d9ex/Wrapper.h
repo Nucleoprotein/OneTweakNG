@@ -3,7 +3,6 @@
 #include "comdef.h"
 
 #include "d3d9.h"
-#include "dinput.h"
 #include "xinput.h"
 
 template <class T>
@@ -31,13 +30,16 @@ public:
 	}
 
 protected:
-	void WrapperLoad(const char* module_name)
+	bool WrapperLoad(const char* module_name, bool use_system_dir = true, bool fail_is_critical = true)
 	{
-		module_path = CreateSystemModulePath(module_name);
+		use_system_dir ? module_path = CreateSystemModulePath(module_name) : module_path = module_name;
 		m_module = LoadLibraryA(module_path.c_str());
 
-		if (!m_module)
-		{
+		if (m_module) {
+			PrintLog("Loaded %s", module_path.c_str());
+			return true;
+		}
+		else if(fail_is_critical) {
 			HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
 			_com_error err(hr);
 
@@ -47,8 +49,7 @@ protected:
 			MessageBoxA(NULL, msg.c_str(), "Error", MB_ICONERROR);
 			ExitProcess(hr);
 		}
-
-		PrintLog("Loaded %s", module_path.c_str());
+		return false;
 	}
 
 	template<typename T>
@@ -77,9 +78,11 @@ public:
 	void (WINAPI* D3DPERF_SetOptions)(DWORD dwOptions);
 	void (WINAPI* D3DPERF_SetRegion)(D3DCOLOR col, LPCWSTR wszName);
 
+	bool IsDXVK() { return m_isdxvk; }
+
 	D3D9DLL()
 	{
-		WrapperLoad("d3d9.dll");
+		WrapperLoad("dxvk.dll", false, false) ? m_isdxvk = true : WrapperLoad("d3d9.dll");
 
 		StoreAddress(&Direct3DCreate9, "Direct3DCreate9");
 		StoreAddress(&Direct3DCreate9Ex, "Direct3DCreate9Ex");
@@ -93,6 +96,9 @@ public:
 		StoreAddress(&D3DPERF_SetOptions, "D3DPERF_SetOptions");
 		StoreAddress(&D3DPERF_SetRegion, "D3DPERF_SetRegion");
 	}
+
+private:
+	bool m_isdxvk = false;
 };
 
 extern "C"
@@ -141,120 +147,5 @@ extern "C"
 	void WINAPI _D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	{
 		return D3D9DLL::Get().D3DPERF_SetRegion(col, wszName);
-	}
-}
-
-class DINPUT8DLL : public WrapperBase<DINPUT8DLL>
-{
-public:
-
-	HRESULT (WINAPI* DirectInput8Create)(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID *ppvOut, LPUNKNOWN punkOuter);
-
-	DINPUT8DLL()
-	{
-		WrapperLoad("dinput8.dll");
-
-		StoreAddress(&DirectInput8Create, "DirectInput8Create");
-	}
-};
-
-extern "C"
-{
-	HRESULT WINAPI _DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID *ppvOut, LPUNKNOWN punkOuter)
-	{
-		return DINPUT8DLL::Get().DirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
-	}
-}
-
-class XINPUTDLL : public WrapperBase<XINPUTDLL>
-{
-public:
-
-	// XInput 1.3 and older functions
-	DWORD(WINAPI* XInputGetState)(DWORD dwUserIndex, XINPUT_STATE* pState);
-	DWORD(WINAPI* XInputSetState)(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration);
-	DWORD(WINAPI* XInputGetCapabilities)(DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES* pCapabilities);
-	VOID(WINAPI* XInputEnable)(BOOL enable);
-	DWORD(WINAPI* XInputGetDSoundAudioDeviceGuids)(DWORD dwUserIndex, GUID* pDSoundRenderGuid, GUID* pDSoundCaptureGuid);
-	DWORD(WINAPI* XInputGetBatteryInformation)(DWORD  dwUserIndex, uint8_t devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation);
-	DWORD(WINAPI* XInputGetKeystroke)(DWORD dwUserIndex, DWORD dwReserved, PXINPUT_KEYSTROKE pKeystroke);
-
-	// XInput 1.3 undocumented functions
-	DWORD(WINAPI* XInputGetStateEx)(DWORD dwUserIndex, XINPUT_STATE *pState); // 100
-	DWORD(WINAPI* XInputWaitForGuideButton)(DWORD dwUserIndex, DWORD dwFlag, LPVOID pVoid); // 101
-	DWORD(WINAPI* XInputCancelGuideButtonWait)(DWORD dwUserIndex); // 102
-	DWORD(WINAPI* XInputPowerOffController)(DWORD dwUserIndex); // 103
-
-	// XInput 1.4 functions
-	DWORD(WINAPI* XInputGetAudioDeviceIds)(DWORD dwUserIndex, LPWSTR pRenderDeviceId, UINT* pRenderCount, LPWSTR pCaptureDeviceId, UINT* pCaptureCount);
-
-	// XInput 1.4 undocumented functionss
-	DWORD(WINAPI* XInputGetBaseBusInformation)(DWORD dwUserIndex, struct XINPUT_BUSINFO* pBusinfo); // 104
-	DWORD(WINAPI* XInputGetCapabilitiesEx)(DWORD unk1, DWORD dwUserIndex, DWORD dwFlags, struct XINPUT_CAPABILITIESEX* pCapabilitiesEx); // 108
-
-	XINPUTDLL()
-	{
-		WrapperLoad("xinput1_3.dll");
-
-		// XInput 1.3 and older functions
-		StoreAddress(&XInputGetState, "XInputGetState");
-		StoreAddress(&XInputSetState, "XInputSetState");
-		StoreAddress(&XInputGetCapabilities, "XInputGetCapabilities");
-		StoreAddress(&XInputEnable, "XInputEnable");
-		StoreAddress(&XInputGetDSoundAudioDeviceGuids, "XInputGetDSoundAudioDeviceGuids");
-		StoreAddress(&XInputGetBatteryInformation, "XInputGetBatteryInformation");
-		StoreAddress(&XInputGetKeystroke, "XInputGetKeystroke");
-
-		// XInput 1.3 undocumented functions
-		StoreAddress(&XInputGetStateEx, (const char*)100);
-		StoreAddress(&XInputWaitForGuideButton, (const char*)101);
-		StoreAddress(&XInputCancelGuideButtonWait, (const char*)102);
-		StoreAddress(&XInputPowerOffController, (const char*)103);
-
-		// XInput 1.4 functions
-		StoreAddress(&XInputGetAudioDeviceIds, "XInputGetAudioDeviceIds");
-
-		// XInput 1.4 undocumented functionss
-		StoreAddress(&XInputGetBaseBusInformation, (const char*)104);
-		StoreAddress(&XInputGetCapabilitiesEx, (const char*)108);
-	}
-};
-
-extern "C"
-{
-	// XInput 1.3 and older functions
-	DWORD WINAPI _XInputGetState(DWORD dwUserIndex, XINPUT_STATE* pState)
-	{
-		return XINPUTDLL::Get().XInputGetState(dwUserIndex, pState);
-	}
-
-	DWORD WINAPI _XInputSetState(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
-	{
-		return XINPUTDLL::Get().XInputSetState(dwUserIndex, pVibration);
-	}
-
-	DWORD WINAPI _XInputGetCapabilities(DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES* pCapabilities)
-	{
-		return XINPUTDLL::Get().XInputGetCapabilities(dwUserIndex, dwFlags, pCapabilities);
-	}
-
-	VOID WINAPI _XInputEnable(BOOL enable)
-	{
-		return XINPUTDLL::Get().XInputEnable(enable);
-	}
-
-	DWORD WINAPI _XInputGetDSoundAudioDeviceGuids(DWORD dwUserIndex, GUID* pDSoundRenderGuid, GUID* pDSoundCaptureGuid)
-	{
-		return XINPUTDLL::Get().XInputGetDSoundAudioDeviceGuids(dwUserIndex, pDSoundRenderGuid, pDSoundCaptureGuid);
-	}
-
-	DWORD WINAPI _XInputGetBatteryInformation(DWORD  dwUserIndex, uint8_t devType, XINPUT_BATTERY_INFORMATION* pBatteryInformation)
-	{
-		return XINPUTDLL::Get().XInputGetBatteryInformation(dwUserIndex, devType, pBatteryInformation);
-	}
-
-	DWORD WINAPI _XInputGetKeystroke(DWORD dwUserIndex, DWORD dwReserved, PXINPUT_KEYSTROKE pKeystroke)
-	{
-		return XINPUTDLL::Get().XInputGetKeystroke(dwUserIndex, dwReserved, pKeystroke);
 	}
 }

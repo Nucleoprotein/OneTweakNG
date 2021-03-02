@@ -1,19 +1,18 @@
 
-SETTING(u32, LongValue, PresentationInterval, Options, 1);
-SETTING(bool, BoolValue, TripleBuffering, Options, true);
-SETTING(u32, LongValue, FullScreenRefreshRate, Options, 0);
-SETTING(u32, LongValue, SwapEffect, Options, -1);
+SETTING(s32, LongValue, PresentationInterval, Options, 1);
+SETTING(s32, LongValue, TripleBuffering, Options, -1);
+SETTING(s32, LongValue, FullScreenRefreshRate, Options, 0);
+SETTING(s32, LongValue, SwapEffect, Options, -1);
 SETTING(bool, BoolValue, AlwaysActive, Options, false);
 SETTING(bool, BoolValue, AutoFix, Options, true);
-SETTING(u32, LongValue, Multisample, Options, 0);
+SETTING(s32, LongValue, Multisample, Options, 0);
 SETTING(bool, BoolValue, HideCursor, Options, false);
 SETTING(bool, BoolValue, ForceHideCursor, Options, false);
 SETTING(u32, LongValue, BehaviorFlags, Options, 0);
 
-SETTING(double, DoubleValue, FFXIIIIngameFrameRateLimit, Options, 0.0);
-SETTING(bool, BoolValue, FFXIIIDisableIngameControllerHotSwapping, Options, true);
-SETTING(bool, BoolValue, FFXIIIEnableControllerVibration, Options, true);
-
+SETTING(s32, LongValue, IngameFrameRateLimit, FFXIII, 0);
+SETTING(bool, BoolValue, DisableIngameControllerHotSwapping, FFXIII, true);
+SETTING(bool, BoolValue, EnableControllerVibration, FFXIII, true);
 
 SETTING(bool, BoolValue, Adapter, Adapter, false);
 SETTING(u32, LongValue, VendorId, Adapter, 0);

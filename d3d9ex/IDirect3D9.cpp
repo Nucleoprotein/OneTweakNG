@@ -53,10 +53,10 @@ UINT APIENTRY hkIDirect3D9::GetAdapterCount() {
 HRESULT APIENTRY hkIDirect3D9::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9* pIdentifier) {
 	PrintLog(__FUNCTION__);
 	HRESULT rt = m_pWrapped->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
-	if (context.config.GetAdapter() && SUCCEEDED(rt) && pIdentifier)
+	if (context.config.GetAdapterAdapter() && SUCCEEDED(rt) && pIdentifier)
 	{
-		pIdentifier->VendorId = context.config.GetVendorId();
-		pIdentifier->DeviceId = context.config.GetDeviceId();
+		pIdentifier->VendorId = context.config.GetAdapterVendorId();
+		pIdentifier->DeviceId = context.config.GetAdapterDeviceId();
 	}
 
 	return rt;
@@ -79,7 +79,7 @@ HRESULT APIENTRY hkIDirect3D9::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMOD
 
 HRESULT APIENTRY hkIDirect3D9::CheckDeviceType(UINT Adapter, D3DDEVTYPE DevType, D3DFORMAT AdapterFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed) {
 	IDirect3D9_PrintLog(__FUNCTION__);
-	if (context.config.GetForceWindowedMode()) bWindowed = TRUE;
+	if (context.config.GetBorderlessForceWindowedMode()) bWindowed = TRUE;
 	return m_pWrapped->CheckDeviceType(Adapter, DevType, AdapterFormat, BackBufferFormat, bWindowed);
 }
 
@@ -122,9 +122,9 @@ HRESULT APIENTRY hkIDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 
 	PrintLog("BehaviorFlags: %08X %s", BehaviorFlags, BehaviorFlagsString.c_str());
 
-	if (context.config.GetBehaviorFlags() > 0)
+	if (context.config.GetOptionsBehaviorFlags() > 0)
 	{
-		BehaviorFlags = context.config.GetBehaviorFlags();
+		BehaviorFlags = context.config.GetOptionsBehaviorFlags();
 		PrintLog("Advanced Mode: BehaviorFlags set");
 	}
 	else
