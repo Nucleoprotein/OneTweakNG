@@ -13,6 +13,7 @@ SETTING(u32, LongValue, BehaviorFlags, Options, 0);
 SETTING(s32, LongValue, IngameFrameRateLimit, FFXIII, 0);
 SETTING(bool, BoolValue, DisableIngameControllerHotSwapping, FFXIII, true);
 SETTING(bool, BoolValue, EnableControllerVibration, FFXIII, true);
+SETTING(bool, DoubleValue, VibrationStrengthFactor, FFXIII, 2.0);
 
 SETTING(bool, BoolValue, Adapter, Adapter, false);
 SETTING(u32, LongValue, VendorId, Adapter, 0);

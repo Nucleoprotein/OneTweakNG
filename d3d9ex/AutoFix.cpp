@@ -196,7 +196,7 @@ void MainContext::FF13_EnableControllerVibration()
 	MemPatch::Nop(ff13_vibration_low_set_zero_address, 5);
 	MemPatch::Nop(ff13_vibration_high_set_zero_address, 5);
 
-	xinputManager = new XInputManager(ff13_base_controller_input_address_ptr);
+	xinputManager = new XInputManager(ff13_base_controller_input_address_ptr, config.GetFFXIIIVibrationStrengthFactor());
 }
 
 void MainContext::FF13_RemoveContinuousControllerScan()
@@ -302,7 +302,7 @@ void MainContext::FF13_2_EnableControllerVibration()
 	MemPatch::Nop(ff13_2_vibration_low_set_zero_address, 5);
 	MemPatch::Nop(ff13_2_vibration_high_set_zero_address, 5);
 
-	xinputManager = new XInputManager(ff13_2_base_controller_input_address_ptr);
+	xinputManager = new XInputManager(ff13_2_base_controller_input_address_ptr, config.GetFFXIIIVibrationStrengthFactor());
 }
 
 void MainContext::FF13_2_InitializeGameAddresses()

@@ -2,11 +2,12 @@
 class XInputManager
 {
 	float* vibration_address_high_frequency = NULL;
+	float vibrationStrengthFactor;
 	float* vibration_address_low_frequency = NULL;
 	DWORD controllerId = -1;
 	std::thread xinputThread;
 public:
-	XInputManager(uint8_t** base_controller_input_address_ptr);
+	XInputManager(uint8_t** base_controller_input_address_ptr, const float vibrationStrengthFactor);
 	void Run(uint8_t** base_controller_input_address_ptr);
 	void WaitAndSetVibrationAddress(uint8_t** base_controller_input_address_ptr);
 	void VibrationLoop();
