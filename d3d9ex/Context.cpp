@@ -44,7 +44,7 @@ MainContext::MainContext() : oldWndProc(nullptr)
 	LogFile("FF13Fix.log");
 	context.PrintVersionInfo();
 
-	if (config.GetAutoFix()) EnableAutoFix();
+	if (config.GetOptionsAutoFix()) EnableAutoFix();
 
 	PrintLog("Enabling hooks:");
 	const MH_STATUS initializeHooks = MH_Initialize();
@@ -74,8 +74,6 @@ MainContext::MainContext() : oldWndProc(nullptr)
 	PrintLog("createHookSetWindowLongW = %d", createHookSetWindowLongW);
 	const MH_STATUS enableHookSetWindowLongW = MH_EnableHook(SetWindowLongW);
 	PrintLog("enableHookSetWindowLongW = %d", enableHookSetWindowLongW);
-
-
 }
 
 MainContext::~MainContext()
@@ -125,47 +123,48 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 {
 	if (pPresentationParameters)
 	{
-		if (config.GetTripleBuffering())
+		// -1 = Auto, enabled when no DXVK is used
+		if (config.GetOptionsTripleBuffering() == 1 || (config.GetOptionsTripleBuffering() == -1 && !D3D9DLL::Get().IsDXVK()))
 		{
 			pPresentationParameters->BackBufferCount = 3;
 			PrintLog("BackBufferCount: BackBufferCount set to %u", pPresentationParameters->BackBufferCount);
 		}
 
-		if ((s32)config.GetFullScreenRefreshRate() >= 0 && pPresentationParameters->FullScreen_RefreshRateInHz != 0)
+		if ((s32)config.GetOptionsFullScreenRefreshRate() >= 0 && pPresentationParameters->FullScreen_RefreshRateInHz != 0)
 		{
-			PrintLog("Changing refresh rate from %u to %u", pPresentationParameters->FullScreen_RefreshRateInHz, config.GetFullScreenRefreshRate());
-			pPresentationParameters->FullScreen_RefreshRateInHz = config.GetFullScreenRefreshRate();
+			PrintLog("Changing refresh rate from %u to %u", pPresentationParameters->FullScreen_RefreshRateInHz, config.GetOptionsFullScreenRefreshRate());
+			pPresentationParameters->FullScreen_RefreshRateInHz = config.GetOptionsFullScreenRefreshRate();
 		}
 
-		if (config.GetMultisample() > 0)
+		if (config.GetOptionsMultisample() > 0)
 		{
 			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_DISCARD;
-			pPresentationParameters->MultiSampleType = (D3DMULTISAMPLE_TYPE)config.GetMultisample();
+			pPresentationParameters->MultiSampleType = (D3DMULTISAMPLE_TYPE)config.GetOptionsMultisample();
 			pPresentationParameters->MultiSampleQuality = 0;
 
 			PrintLog("MultiSampleType %u, MultiSampleQuality %u", pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality);
 		}
 
-		if (config.GetPresentationInterval() != -1)
+		if (config.GetOptionsPresentationInterval() != -1)
 		{
-			pPresentationParameters->PresentationInterval = config.GetPresentationInterval();
+			pPresentationParameters->PresentationInterval = config.GetOptionsPresentationInterval();
 			PrintLog("PresentationInterval: PresentationInterval set to %u", pPresentationParameters->PresentationInterval);
 		}
 
-		if ((s32)config.GetSwapEffect() != -1)
+		if (config.GetOptionsSwapEffect() != -1)
 		{
-			pPresentationParameters->SwapEffect = (D3DSWAPEFFECT)config.GetSwapEffect();
+			pPresentationParameters->SwapEffect = (D3DSWAPEFFECT)config.GetOptionsSwapEffect();
 			PrintLog("SwapEffect: SwapEffect set to %u", pPresentationParameters->SwapEffect);
 		}
 
-		if (config.GetBorderless())
+		if (config.GetBorderlessBorderless())
 		{
 			int cx = GetSystemMetrics(SM_CXSCREEN);
 			int cy = GetSystemMetrics(SM_CYSCREEN);
 
 			SetWindowPos(pPresentationParameters->hDeviceWindow, HWND_TOP, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 
-			if (config.GetForceWindowedMode())
+			if (config.GetBorderlessForceWindowedMode())
 			{
 				pPresentationParameters->SwapEffect = pPresentationParameters->MultiSampleType == D3DMULTISAMPLE_NONE ? D3DSWAPEFFECT_DISCARD : D3DSWAPEFFECT_FLIP;
 				pPresentationParameters->Windowed = TRUE;
@@ -174,7 +173,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 			}
 		}
 
-		if (config.GetHideCursor()) while (::ShowCursor(FALSE) >= 0); // ShowCursor < 0 -> hidden
+		if (config.GetOptionsHideCursor()) while (::ShowCursor(FALSE) >= 0); // ShowCursor < 0 -> hidden
 
 		return true;
 	}
@@ -191,32 +190,18 @@ bool MainContext::CheckWindow(HWND hWnd)
 
 	PrintLog("HWND 0x%p: ClassName \"%ls\", WindowName: \"%ls\"", hWnd, className.get(), windowName.get());
 
-	if (!context.didOneTimeFixes) {
-		if (context.autofix == FINAL_FANTASY_XIII && wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
-			const std::lock_guard<std::mutex> lock(context.oneTimeFixesMutex);
-			if(!context.didOneTimeFixes && patchingThread == NULL){
-				PrintLog("Starting FFXIII one time RAM patches.");
-				patchingThread = new std::thread(&context.FF13_AsyncPatching);
-			}
-		}
-		else if (context.autofix == FINAL_FANTASY_XIII2 && wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
-			const std::lock_guard<std::mutex> lock(context.oneTimeFixesMutex);
-			if (!context.didOneTimeFixes && patchingThread == NULL) {
-				PrintLog("Starting FFXIII-2 one time RAM patches.");
-				patchingThread = new std::thread(&context.FF13_2_AsyncPatching);
-			}
-		}
-	}
-	bool class_found = config.GetWindowClass().compare(className.get()) == 0;
-	bool window_found = config.GetWindowName().compare(windowName.get()) == 0;
-	bool force = config.GetAllWindows();
+	OneTimeFix(className);
+
+	bool class_found = config.GetBorderlessWindowClass().compare(className.get()) == 0;
+	bool window_found = config.GetBorderlessWindowName().compare(windowName.get()) == 0;
+	bool force = config.GetBorderlessAllWindows();
 
 	return class_found || window_found || force;
 }
 
 void MainContext::ApplyWndProc(HWND hWnd)
 {
-	if (config.GetAlwaysActive() || config.GetHideCursor())
+	if (config.GetOptionsAlwaysActive() || config.GetOptionsHideCursor())
 	{
 		context.oldWndProc = (WNDPROC)context.TrueSetWindowLongA(hWnd, GWLP_WNDPROC, (LONG_PTR)context.WindowProc);
 	}
@@ -224,7 +209,7 @@ void MainContext::ApplyWndProc(HWND hWnd)
 
 void MainContext::ApplyBorderless(HWND hWnd)
 {
-	if (config.GetBorderless())
+	if (config.GetBorderlessBorderless())
 	{
 		LONG_PTR dwStyle = GetWindowLongPtr(hWnd, GWL_STYLE);
 		LONG_PTR dwExStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
@@ -243,7 +228,6 @@ void MainContext::ApplyBorderless(HWND hWnd)
 
 		PrintLog("HWND 0x%p: Borderless dwStyle: %lX->%lX", hWnd, dwStyle, new_dwStyle);
 		PrintLog("HWND 0x%p: Borderless dwExStyle: %lX->%lX", hWnd, dwExStyle, new_dwExStyle);
-		MessageBeep(MB_ICONASTERISK);
 	}
 }
 
@@ -261,21 +245,21 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			break;
 
 		case WA_INACTIVE:
-			if (context.config.GetAlwaysActive())
+			if (context.config.GetOptionsAlwaysActive())
 				return TRUE;
 
-			if (!context.config.GetForceHideCursor())
+			if (!context.config.GetOptionsForceHideCursor())
 				while (::ShowCursor(TRUE) < 0);
 			break;
 		}
 
 	case WM_ACTIVATEAPP:
-		if (context.config.GetAlwaysActive())
+		if (context.config.GetOptionsAlwaysActive())
 			return TRUE;
 
 	}
 
-	if (context.config.GetForceHideCursor())
+	if (context.config.GetOptionsForceHideCursor())
 		while (::ShowCursor(FALSE) >= 0);
 
 	return CallWindowProc(context.oldWndProc, hWnd, uMsg, wParam, lParam);
@@ -283,7 +267,7 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 
 LONG WINAPI MainContext::HookSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
 {
-	if (context.config.GetBorderless())
+	if (context.config.GetBorderlessBorderless())
 	{
 		DWORD olddwNewLong = dwNewLong;
 		if (nIndex == GWL_STYLE)
@@ -303,7 +287,7 @@ LONG WINAPI MainContext::HookSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLon
 
 LONG WINAPI MainContext::HookSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
 {
-	if (context.config.GetBorderless())
+	if (context.config.GetBorderlessBorderless())
 	{
 		DWORD olddwNewLong = dwNewLong;
 		if (nIndex == GWL_STYLE)

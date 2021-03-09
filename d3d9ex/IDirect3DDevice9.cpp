@@ -9,7 +9,7 @@
 
 #include <intrin.h>
 
-#define IDirect3DDevice9_PrintLog(...) //PrintLog(format, __VA_ARGS__);
+#define IDirect3DDevice9_PrintLog(...) //PrintLog("%s", __VA_ARGS__);
 
 HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
@@ -102,22 +102,10 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetSwapChain(UINT iSwapChain, IDirect3DSwap
 
 	// Steam Overlay Fix
 	// Add some space, 16bytes should be enough
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
+	__nop();	__nop();	__nop();	__nop();	
+	__nop();	__nop();	__nop();	__nop();
+	__nop();	__nop();	__nop();	__nop();
+	__nop();	__nop();	__nop();	__nop();
 
 	return m_pWrapped->GetSwapChain(iSwapChain, pSwapChain);
 }
@@ -181,7 +169,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::CreateCubeTexture(UINT EdgeLength, UINT Lev
 
 HRESULT APIENTRY hkIDirect3DDevice9::CreateVertexBuffer(UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle) {
 	//PrintLog("hkIDirect3DDevice9::CreateVertexBuffer %08u %x %x %x %p %p", Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
-	return context.ApplyVertexBufferFix(m_pWrapped, Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+	return context.CreateVertexBuffer(m_pWrapped, Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle) {
@@ -286,7 +274,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::MultiplyTransform(D3DTRANSFORMSTATETYPE Sta
 
 HRESULT APIENTRY hkIDirect3DDevice9::SetViewport(CONST D3DVIEWPORT9* pViewport) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return m_pWrapped->SetViewport(pViewport);
+	return context.SetViewport(m_pWrapped, pViewport);
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::GetViewport(D3DVIEWPORT9* pViewport) {
@@ -426,8 +414,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetCurrentTexturePalette(UINT *PaletteNumbe
 
 HRESULT APIENTRY hkIDirect3DDevice9::SetScissorRect(CONST RECT* pRect) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	context.ScaleScissorRect((RECT*)pRect);
-	return m_pWrapped->SetScissorRect(pRect);
+	return context.SetScissorRect(m_pWrapped, pRect);
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::GetScissorRect(RECT* pRect) {

@@ -62,14 +62,18 @@ typedef BOOL(WINAPI* GetProductInfo_t)(DWORD dwOSMajorVersion, DWORD dwOSMinorVe
 
 inline BOOL MyGetVersionExA(OSVERSIONINFOEXA* lpVersionInformation)
 {
-	GetVersionExA_t RealGetVersionExA = (GetVersionExA_t)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetVersionExA");
+	HMODULE hkernel = GetModuleHandle(TEXT("kernel32.dll"));
+	if (!hkernel) return FALSE;
+	GetVersionExA_t RealGetVersionExA = (GetVersionExA_t)GetProcAddress(hkernel, "GetVersionExA");
 	if (!RealGetVersionExA) return FALSE;
 	return RealGetVersionExA(lpVersionInformation);
 }
 
 inline BOOL MyGetProductInfo(DWORD dwOSMajorVersion, DWORD dwOSMinorVersion, DWORD dwSpMajorVersion, DWORD dwSpMinorVersion, PDWORD pdwReturnedProductType)
 {
-	GetProductInfo_t RealGetProductInfo = (GetProductInfo_t)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
+	HMODULE hkernel = GetModuleHandle(TEXT("kernel32.dll"));
+	if (!hkernel) return FALSE;
+	GetProductInfo_t RealGetProductInfo = (GetProductInfo_t)GetProcAddress(hkernel, "GetProductInfo");
 	if (!RealGetProductInfo) return FALSE;
 	return RealGetProductInfo(dwOSMajorVersion, dwOSMinorVersion, dwSpMajorVersion, dwSpMinorVersion, pdwReturnedProductType);
 }

@@ -13,7 +13,6 @@
 class Logger 
 {
 public:
-	std::mutex printLogMutex;
 	Logger(const Logger&) = delete;
 	const Logger& operator=(Logger& other) = delete;
 
@@ -27,6 +26,8 @@ public:
 		if (m_file)
 			CloseHandle(m_file);
 	}
+
+	std::mutex& writeMutex() const { return m_writeMutex; }
 
 	static Logger& Logger::Get()
 	{
@@ -111,6 +112,7 @@ private:
 	SYSTEMTIME m_systime;
 	HANDLE m_console;
 	HANDLE m_file;
+	mutable std::mutex m_writeMutex;
 };
 
 inline void LogFile(const std::string& logname)
@@ -125,7 +127,7 @@ inline void LogConsole(const char* title = nullptr)
 
 inline void PrintLog(const char* format, ...)
 {
-	const std::lock_guard<std::mutex> lock(Logger::Get().printLogMutex);
+	const std::lock_guard<std::mutex> lock(Logger::Get().writeMutex());
 	va_list args;
 	va_start(args, format);
 	Logger::Get().Print(format, args);
