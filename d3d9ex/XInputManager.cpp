@@ -48,8 +48,8 @@ void XInputManager::VibrationLoop()
 		const float vibrationStrengthLowFrequency = *vibration_address_low_frequency;
 		const float vibrationStrengthHighFrequency = *vibration_address_high_frequency;
 		if (vibrationStrengthLowFrequency > 0.01f || vibrationStrengthHighFrequency > 0.01f) {
-			const WORD leftMotorVibration = std::min((WORD)(vibrationStrengthFactor * vibrationStrengthLowFrequency * maxVibrationStrength), maxVibrationStrength);
-			const WORD rightMotorVibration = std::min((WORD)(vibrationStrengthFactor * vibrationStrengthHighFrequency * maxVibrationStrength), maxVibrationStrength);
+			const WORD leftMotorVibration = (WORD) (std::min(vibrationStrengthFactor * vibrationStrengthLowFrequency, 1.0f) * maxVibrationStrength);
+			const WORD rightMotorVibration = (WORD) (std::min(vibrationStrengthFactor * vibrationStrengthHighFrequency, 1.0f) * maxVibrationStrength);
 			SetControllerVibration(leftMotorVibration, rightMotorVibration);
 			wasVibrating = true;
 		}
