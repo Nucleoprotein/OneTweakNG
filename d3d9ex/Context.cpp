@@ -145,10 +145,14 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 			PrintLog("MultiSampleType %u, MultiSampleQuality %u", pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality);
 		}
 
-		if (config.GetOptionsPresentationInterval() != -1)
+		if (config.GetOptionsPresentationInterval() != 0)
 		{
-			pPresentationParameters->PresentationInterval = config.GetOptionsPresentationInterval();
-			PrintLog("PresentationInterval: PresentationInterval set to %u", pPresentationParameters->PresentationInterval);
+			if (config.GetOptionsPresentationInterval() == -1)
+				pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+			else if (config.GetOptionsPresentationInterval() > 0)
+				pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+
+			PrintLog("PresentationInterval: PresentationInterval set to 0x%x", pPresentationParameters->PresentationInterval);
 		}
 
 		if (config.GetOptionsSwapEffect() != -1)
