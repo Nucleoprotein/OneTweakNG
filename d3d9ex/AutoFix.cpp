@@ -234,7 +234,7 @@ void MainContext::FF13_FixScissorRect()
 	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_1, 4);
 	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_2, 7);
 	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_3, 7);
-	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_3, 5);
+	MemPatch::Nop(ff13_party_screen_scissor_scaling_factor_4, 7);
 }
 
 void MainContext::FF13_NOPIngameFrameRateLimitSetter()
