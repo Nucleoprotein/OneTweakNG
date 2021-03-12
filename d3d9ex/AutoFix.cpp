@@ -412,7 +412,7 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.5.1 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.5.2 https://github.com/rebtd7/FF13Fix");
 }
 
 bool MainContext::AreAlmostTheSame(float a, float b) {
