@@ -81,7 +81,7 @@ HRESULT MainContext::SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DV
 	if (pViewport)
 	{
 		D3DVIEWPORT9* vp = const_cast<D3DVIEWPORT9*>(pViewport);
-		if (pViewport->Width > 1280 && pViewport->Height > 720)
+		if (pViewport->Width > 1920 && pViewport->Height > 1080)
 		{
 			vp->Width--;
 			vp->X++;
