@@ -2,6 +2,8 @@
 // generated using wrapper_gen.rb
 
 #include "stdafx.h"
+
+#include "Logger.h"
 #include "Context.h"
 
 #include "IDirect3D9.h"
@@ -17,27 +19,11 @@ HRESULT APIENTRY hkIDirect3D9::QueryInterface(REFIID riid, void** ppvObj) {
 		riid == __uuidof(IDirect3D9))
 	{
 		*ppvObj = static_cast<IDirect3D9*>(this);
-		AddRef();
 		return S_OK;
 	}
 
 	*ppvObj = nullptr;
 	return E_NOINTERFACE;
-}
-
-ULONG APIENTRY hkIDirect3D9::AddRef() {
-	PrintLog(__FUNCTION__);
-	return _InterlockedIncrement(&m_refCount);
-}
-
-ULONG APIENTRY hkIDirect3D9::Release() {
-	PrintLog(__FUNCTION__);
-	const LONG ref = _InterlockedDecrement(&m_refCount);
-	if (ref == 0)
-	{
-		delete this;
-	}
-	return ref;
 }
 
 HRESULT APIENTRY hkIDirect3D9::RegisterSoftwareDevice(void* pInitializeFunction) {
@@ -151,6 +137,8 @@ HRESULT APIENTRY hkIDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 		return hr;
 	}
 	
+	context.OneTimeFix();
+
 	*ppReturnedDeviceInterface = new hkIDirect3DDevice9(device);
 	return hr;
 }

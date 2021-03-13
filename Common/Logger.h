@@ -5,9 +5,12 @@
 
 #include <memory> 
 #include <string> 
+#include <mutex> 
 
 #include "StringUtil.h"
 #include "WinUtil.h"
+
+#define LOGGER_DISABLE_MUTEX
 
 #ifndef LOGGER_DISABLE
 class Logger 
@@ -27,7 +30,9 @@ public:
 			CloseHandle(m_file);
 	}
 
+#ifndef LOGGER_DISABLE_MUTEX
 	std::mutex& writeMutex() const { return m_writeMutex; }
+#endif
 
 	static Logger& Logger::Get()
 	{
@@ -38,7 +43,7 @@ public:
 	bool File(const std::string& filename)
 	{
 		std::string logpath = FullPathFromPath(filename);
-		m_file = CreateFileA(logpath.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		m_file = CreateFileA(logpath.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_FLAG_WRITE_THROUGH, NULL);
 		OutputDebugStringA(logpath.c_str());
 
 		if (m_file != INVALID_HANDLE_VALUE)
@@ -127,7 +132,9 @@ inline void LogConsole(const char* title = nullptr)
 
 inline void PrintLog(const char* format, ...)
 {
+#ifndef LOGGER_DISABLE_MUTEX
 	const std::lock_guard<std::mutex> lock(Logger::Get().writeMutex());
+#endif
 	va_list args;
 	va_start(args, format);
 	Logger::Get().Print(format, args);

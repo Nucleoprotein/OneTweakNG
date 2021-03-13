@@ -1,11 +1,17 @@
 #include "stdafx.h"
-#include <windows.h>
 
-#include "Wrapper.h"
-
-#include "Context.h"
-#include "IDirect3D9.h"
 #include <thread>
+#include <array>
+
+
+#include "Logger.h"
+
+#include "MinHook.h"
+#include "SimpleIni.h"
+
+#include "IDirect3D9.h"
+#include "Context.h"
+#include "Wrapper.h"
 
 MainContext context;
 
@@ -22,8 +28,8 @@ Config::Config()
 		// save file and reload
 		ini.Reset();
 
-#define SETTING(_type, _func, _var, _section, _defaultval) \
-	ini.Set##_func(L#_section, L#_var, _defaultval)
+#define SETTING(_type, _func, _var, _section, _defaultval, _comment) \
+	ini.Set##_func(L#_section, L#_var, _defaultval, _comment)
 #include "Settings.h"
 #undef SETTING
 
@@ -33,13 +39,13 @@ Config::Config()
 		ini.LoadFile(inifile.c_str());
 	}
 
-#define SETTING(_type, _func, _var, _section, _defaultval) \
+#define SETTING(_type, _func, _var, _section, _defaultval, _comment) \
 	_var = ini.Get##_func(L#_section, L#_var)
 #include "Settings.h"
 #undef SETTING
 }
 
-MainContext::MainContext() : oldWndProc(nullptr)
+MainContext::MainContext()
 {
 	LogFile("FF13Fix.log");
 	context.PrintVersionInfo();
@@ -124,7 +130,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 	if (pPresentationParameters)
 	{
 		// -1 = Auto, enabled when no DXVK is used
-		if (config.GetOptionsTripleBuffering() == 1 || (config.GetOptionsTripleBuffering() == -1 && !D3D9DLL::Get().IsDXVK()))
+		if (config.GetOptionsTripleBuffering() == 1 || (config.GetOptionsTripleBuffering() == -1 && !IsDXVK()))
 		{
 			pPresentationParameters->BackBufferCount = 3;
 			PrintLog("BackBufferCount: BackBufferCount set to %u", pPresentationParameters->BackBufferCount);
@@ -194,18 +200,28 @@ bool MainContext::CheckWindow(HWND hWnd)
 
 	PrintLog("HWND 0x%p: ClassName \"%ls\", WindowName: \"%ls\"", hWnd, className.get(), windowName.get());
 
-	OneTimeFix(className);
-
-	bool class_found = config.GetBorderlessWindowClass().compare(className.get()) == 0;
-	bool window_found = config.GetBorderlessWindowName().compare(windowName.get()) == 0;
+	bool class_found = config.GetWindowWindowClass().compare(className.get()) == 0;
+	bool window_found = config.GetWindowWindowName().compare(windowName.get()) == 0;
 	bool force = config.GetBorderlessAllWindows();
+	bool ff13fix = OneTimeFixInit(className);
 
-	return class_found || window_found || force;
+	return class_found || window_found || force || ff13fix;
 }
 
-void MainContext::ApplyWndProc(HWND hWnd)
+void MainContext::ApplyWindow(HWND hWnd)
 {
-	if (config.GetOptionsAlwaysActive() || config.GetOptionsHideCursor())
+	HWND insertAfter = HWND_TOP;
+	if (config.GetWindowTopMost() && !context.IsDXVK())
+		insertAfter = HWND_TOPMOST;
+
+	SetWindowPos(hWnd, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+	SetFocus(hWnd);
+
+	// fixes DXVK window in background, no need to click anymore
+	if (context.IsDXVK())
+		SetForegroundWindow(hWnd);
+
+	if (config.GetOptionsAlwaysActive() || config.GetOptionsHideCursor() || IsDXVK())
 	{
 		context.oldWndProc = (WNDPROC)context.TrueSetWindowLongA(hWnd, GWLP_WNDPROC, (LONG_PTR)context.WindowProc);
 	}
@@ -227,7 +243,12 @@ void MainContext::ApplyBorderless(HWND hWnd)
 		int cx = GetSystemMetrics(SM_CXSCREEN);
 		int cy = GetSystemMetrics(SM_CYSCREEN);
 
-		SetWindowPos(hWnd, HWND_TOP, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+		HWND insertAfter = HWND_TOP;
+
+		if (config.GetWindowTopMost())
+			insertAfter = HWND_TOPMOST;
+
+		SetWindowPos(hWnd, insertAfter, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 		SetFocus(hWnd);
 
 		PrintLog("HWND 0x%p: Borderless dwStyle: %lX->%lX", hWnd, dwStyle, new_dwStyle);
@@ -252,7 +273,7 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			if (context.config.GetOptionsAlwaysActive())
 				return TRUE;
 
-			if (!context.config.GetOptionsForceHideCursor())
+			if (!context.config.GetOptionsForceHideCursor() || context.IsDXVK())
 				while (::ShowCursor(TRUE) < 0);
 			break;
 		}
@@ -263,7 +284,7 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 
 	}
 
-	if (context.config.GetOptionsForceHideCursor())
+	if (context.config.GetOptionsForceHideCursor() || context.IsDXVK())
 		while (::ShowCursor(FALSE) >= 0);
 
 	return CallWindowProc(context.oldWndProc, hWnd, uMsg, wParam, lParam);
@@ -320,7 +341,7 @@ HWND WINAPI MainContext::HookCreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName
 
 	if (context.CheckWindow(hWnd))
 	{
-		context.ApplyWndProc(hWnd);
+		context.ApplyWindow(hWnd);
 		context.ApplyBorderless(hWnd);
 	}
 
@@ -338,9 +359,11 @@ HWND WINAPI MainContext::HookCreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassNam
 
 	if (context.CheckWindow(hWnd))
 	{
-		context.ApplyWndProc(hWnd);
+		context.ApplyWindow(hWnd);
 		context.ApplyBorderless(hWnd);
 	}
 
 	return hWnd;
 }
+
+bool MainContext::IsDXVK() { return D3D9DLL::Get().IsDXVK(); }

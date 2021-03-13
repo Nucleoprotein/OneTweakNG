@@ -25,8 +25,3 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
-
-#include <d3d9.h>
-
-#include "WinUtil.h"
-#include "Logger.h"

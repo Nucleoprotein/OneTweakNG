@@ -1,16 +1,13 @@
 #pragma once
 
-#include <array>
-#include "d3d9.h"
-#include <MinHook.h>
-#include "SimpleIni.h"
-#include "XInputManager.h"
-#include "MemPatch.h"
+#include <atomic>
+#include <d3d9.h>
 
-struct hkIDirect3D9;
+#include "Types.h"
+#include "XInputManager.h"
 
 static const char* inifilename = "FF13Fix.ini";
-#define CONFIG_VERSION 5
+#define CONFIG_VERSION 6
 
 class Config
 {
@@ -20,7 +17,7 @@ public:
 
 	Config();
 
-#define SETTING(_type, _func, _var, _section, _defaultval) \
+#define SETTING(_type, _func, _var, _section, _defaultval, _comment) \
 	private: _type _var; \
 	public: const _type& Get##_section##_var() const { return _var; };
 #include "Settings.h"
@@ -46,10 +43,10 @@ class MainContext
 
 public:
 	MainContext();
-	~MainContext();
+	virtual ~MainContext();
 
 	bool ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
-	bool ApplyBehaviorFlagsFix(DWORD* flags);
+	void ApplyBehaviorFlagsFix(DWORD* flags);
 	HRESULT SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST RECT* rect);
 	HRESULT CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
 	HRESULT SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport);
@@ -57,10 +54,12 @@ public:
 
 	bool CheckWindow(HWND hWnd);
 
-	void ApplyWndProc(HWND hWnd);
+	void ApplyWindow(HWND hWnd);
 	void ApplyBorderless(HWND hWnd);
 
 	Config config;
+	void OneTimeFix();
+	bool IsDXVK();
 
 private:
 	enum class AutoFixes : u32
@@ -118,12 +117,12 @@ private:
 	XInputManager* xinputManager;
 
 	void FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out);
-	static const std::map<const AutoFixes, const uint32_t> behaviorflags_fixes;
+	static const std::map<const AutoFixes, const uint32_t> behaviorflags_add;
+	static const std::map<const AutoFixes, const uint32_t> behaviorflags_sub;
 
 	static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	WNDPROC oldWndProc;
+	WNDPROC oldWndProc = nullptr;
 
-	bool AreAlmostTheSame(float a, float b);
 	void PrintVersionInfo();
 
 	void FF13_InitializeGameAddresses();
@@ -141,7 +140,9 @@ private:
 	void FF13_2_OneTimeFixes();
 	void FF13_2_EnableControllerVibration();
 
-	void OneTimeFix(std::unique_ptr<wchar_t[]>& className);
+	bool OneTimeFixInit(std::unique_ptr<wchar_t[]>& className);
+	std::atomic_bool otf_init = false;
+
 	static void Fix_Thread();
 };
 

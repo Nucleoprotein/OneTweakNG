@@ -1,7 +1,10 @@
 #include "stdafx.h"
 
+#include "Logger.h"
+#include "MemPatch.h"
+
 #include "Context.h"
-#include "IDirect3DVertexBuffer9.h"
+//#include "IDirect3DVertexBuffer9.h"
 
 void MainContext::EnableAutoFix()
 {
@@ -24,9 +27,15 @@ void MainContext::EnableAutoFix()
 	}
 }
 
-const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behaviorflags_fixes =
+const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behaviorflags_add =
 {
 
+};
+
+const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behaviorflags_sub =
+{
+	//{ AutoFixes::FINAL_FANTASY_XIII, D3DCREATE_PUREDEVICE },
+	//{ AutoFixes::FINAL_FANTASY_XIII2, D3DCREATE_PUREDEVICE }
 };
 
 void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out)
@@ -48,24 +57,26 @@ void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out
 	}
 }
 
-bool MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
+void MainContext::ApplyBehaviorFlagsFix(DWORD* flags)
 {
-	if (autofix == AutoFixes::NONE) return false;
+	if (autofix == AutoFixes::NONE) return;
 
-	auto&& fix = behaviorflags_fixes.find(autofix);
-	if (fix != behaviorflags_fixes.end())
+	auto&& add = behaviorflags_add.find(autofix);
+	if (add != behaviorflags_add.end())
+		FixBehaviorFlagConflict(add->second, flags);
+
+	auto&& sub = behaviorflags_sub.find(autofix);
+	if (sub != behaviorflags_sub.end())
 	{
-		FixBehaviorFlagConflict(fix->second, flags);
-		return true;
+		*flags = *flags & ~sub->second;
+		FixBehaviorFlagConflict(sub->second, flags);
 	}
-
-	return false;
 }
 
 HRESULT MainContext::SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST RECT* rect)
 {
 	if (rect)
-	{	
+	{
 		RECT* r = const_cast<RECT*>(rect);
 		r->left = (LONG)(r->left * scissor_scaling_factor_w);
 		r->top = (LONG)(r->top * scissor_scaling_factor_h);
@@ -78,6 +89,10 @@ HRESULT MainContext::SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST R
 
 HRESULT MainContext::SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport)
 {
+	// DXVK fixes this better
+	if(IsDXVK())
+		return pIDirect3DDevice9->SetViewport(pViewport);
+	
 	if (pViewport)
 	{
 		D3DVIEWPORT9* vp = const_cast<D3DVIEWPORT9*>(pViewport);
@@ -88,43 +103,52 @@ HRESULT MainContext::SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DV
 
 			vp->Height--;
 			vp->Y++;
+			return pIDirect3DDevice9->SetViewport(vp);
 		}
-		return pIDirect3DDevice9->SetViewport(vp);
 	}
 	return pIDirect3DDevice9->SetViewport(pViewport);
 }
 
+// hate this workaround but we cant directly mix d3d9 include with and without defined CINTERFACE
+namespace cinterface {
+	void VertexBufferFix(IDirect3DVertexBuffer9* pVertexBuffer);
+}
+
 HRESULT MainContext::CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
-	switch (autofix)
+	if (autofix == AutoFixes::FINAL_FANTASY_XIII ||
+		autofix == AutoFixes::FINAL_FANTASY_XIII2)
 	{
-	case AutoFixes::FINAL_FANTASY_XIII:
-	case AutoFixes::FINAL_FANTASY_XIII2:
 		// Both games lock a vertex buffer 358400 before drawing any 2D element on screen (sometimes multiple times per frame)
 		if (Length == 358400 && Pool == D3DPOOL_MANAGED) {
 			Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 			Pool = D3DPOOL_SYSTEMMEM;
+			HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+
+			if (config.GetFFXIIIDiscardUIVertexBuffer() && ppVertexBuffer && *ppVertexBuffer)
+			{
+				//Pool = D3DPOOL_DEFAULT;
+				cinterface::VertexBufferFix(*ppVertexBuffer);
+			}
+			return hr;
 		}
-
-		// Crashing on Lock/Unlock, why???
-		//	//IDirect3DVertexBuffer9* buffer = nullptr;
-		//	//HRESULT hr = pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, &buffer, NULL);
-		//	//if (FAILED(hr))
-		//	//{
-		//	//	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
-		//	//}
-
-		//	//if(ppVertexBuffer) *ppVertexBuffer = new hkIDirect3DVertexBuffer9(pIDirect3DDevice9, buffer);
-		//	//return hr;
-		break;
 	}
 
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
-
-void MainContext::OneTimeFix(std::unique_ptr<wchar_t[]>& className)
+bool MainContext::OneTimeFixInit(std::unique_ptr<wchar_t[]>& className)
 {
 	if (wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
+		otf_init = true;
+	}
+	return otf_init;
+}
+
+void MainContext::OneTimeFix()
+{
+	if (otf_init)
+	{
+		otf_init = false;
 		std::thread fix(&context.Fix_Thread);
 		fix.detach();
 	}
@@ -132,7 +156,11 @@ void MainContext::OneTimeFix(std::unique_ptr<wchar_t[]>& className)
 
 void MainContext::Fix_Thread()
 {
+	auto start = std::chrono::high_resolution_clock::now();
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	PrintLog("Waited %f ms", elapsed.count());
 
 	std::lock_guard<std::mutex> lock(context.fix_mutex);
 	if (context.autofix == AutoFixes::FINAL_FANTASY_XIII) {
@@ -413,8 +441,4 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 
 void MainContext::PrintVersionInfo() {
 	PrintLog("FF13Fix 1.5.2 https://github.com/rebtd7/FF13Fix");
-}
-
-bool MainContext::AreAlmostTheSame(float a, float b) {
-	return fabs(a - b) < 0.01f;
 }

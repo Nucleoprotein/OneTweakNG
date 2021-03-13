@@ -2,21 +2,38 @@
 // generated using wrapper_gen.rb
 
 #pragma once
-#include "d3d9.h"
+#include <d3d9.h>
 
 interface hkIDirect3DDevice9 final : public IDirect3DDevice9 {
 public:
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)();
-	STDMETHOD_(ULONG, Release)();
+	ULONG STDMETHODCALLTYPE AddRef() {
+		uint32_t refCount = m_refCount++;
+		if (!refCount)
+			AddRefPrivate();
+		return refCount + 1;
+	}
+
+	ULONG STDMETHODCALLTYPE Release() {
+		ULONG refCount = this->m_refCount;
+		if (refCount != 0ul) {
+			this->m_refCount--;
+			refCount--;
+
+			if (refCount == 0ul)
+				this->ReleasePrivate();
+		}
+
+		return refCount;
+	}
 	STDMETHOD(TestCooperativeLevel)();
 	STDMETHOD_(UINT, GetAvailableTextureMem)();
 	STDMETHOD(EvictManagedResources)();
 	STDMETHOD(GetDirect3D)(IDirect3D9** ppD3D9);
 	STDMETHOD(GetDeviceCaps)(D3DCAPS9* pCaps);
 	STDMETHOD(GetDisplayMode)(UINT iSwapChain, D3DDISPLAYMODE* pMode);
-	STDMETHOD(GetCreationParameters)(D3DDEVICE_CREATION_PARAMETERS *pParameters);
+	STDMETHOD(GetCreationParameters)(D3DDEVICE_CREATION_PARAMETERS* pParameters);
 	STDMETHOD(SetCursorProperties)(UINT XHotSpot, UINT YHotSpot, IDirect3DSurface9* pCursorBitmap);
 	STDMETHOD_(void, SetCursorPosition)(int X, int Y, DWORD Flags);
 	STDMETHOD_(BOOL, ShowCursor)(BOOL bShow);
@@ -81,7 +98,7 @@ public:
 	STDMETHOD(SetPaletteEntries)(UINT PaletteNumber, CONST PALETTEENTRY* pEntries);
 	STDMETHOD(GetPaletteEntries)(UINT PaletteNumber, PALETTEENTRY* pEntries);
 	STDMETHOD(SetCurrentTexturePalette)(UINT PaletteNumber);
-	STDMETHOD(GetCurrentTexturePalette)(UINT *PaletteNumber);
+	STDMETHOD(GetCurrentTexturePalette)(UINT* PaletteNumber);
 	STDMETHOD(SetScissorRect)(CONST RECT* pRect);
 	STDMETHOD(GetScissorRect)(RECT* pRect);
 	STDMETHOD(SetSoftwareVertexProcessing)(BOOL bSoftware);
@@ -127,19 +144,29 @@ public:
 	STDMETHOD(DeletePatch)(UINT Handle);
 	STDMETHOD(CreateQuery)(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 
-	public:
-		hkIDirect3DDevice9(IDirect3DDevice9 *pIDirect3DDevice9)
-			: m_pWrapped(pIDirect3DDevice9)
-		{
-		}
-
-private:
-	~hkIDirect3DDevice9()
+	hkIDirect3DDevice9(IDirect3DDevice9* pIDirect3DDevice9)
+		: m_pWrapped(pIDirect3DDevice9)
 	{
-		m_pWrapped->Release();
+		m_pWrapped->AddRef();
 	}
 
-	LONG m_refCount = 1;
+	virtual ~hkIDirect3DDevice9() { while (m_pWrapped->Release()); }
+
+private:
 	IDirect3DDevice9* m_pWrapped;
+	std::atomic<uint32_t> m_refCount = { 0ul };
+	std::atomic<uint32_t> m_refPrivate = { 1ul };
+
+	void AddRefPrivate() {
+		++m_refPrivate;
+	}
+
+	void ReleasePrivate() {
+		uint32_t refPrivate = --m_refPrivate;
+		if (!refPrivate) {
+			m_refPrivate += 0x80000000;
+			delete this;
+		}
+	}
 };
 

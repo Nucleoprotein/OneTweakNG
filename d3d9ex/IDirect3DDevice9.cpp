@@ -3,6 +3,8 @@
 
 #pragma once
 #include "stdafx.h"
+
+#include "Logger.h"
 #include "Context.h"
 
 #include "IDirect3DDevice9.h"
@@ -19,26 +21,11 @@ HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) 
 		riid == __uuidof(IDirect3DDevice9))
 	{
 		*ppvObj = static_cast<IDirect3DDevice9*>(this);
-		AddRef();
 		return S_OK;
 	}
 
 	*ppvObj = nullptr;
 	return E_NOINTERFACE;
-}
-
-ULONG APIENTRY hkIDirect3DDevice9::AddRef() {
-	IDirect3DDevice9_PrintLog(__FUNCTION__);
-	return _InterlockedIncrement(&m_refCount);
-}
-
-ULONG APIENTRY hkIDirect3DDevice9::Release() {
-	const LONG ref = _InterlockedDecrement(&m_refCount);
-	if (ref == 0)
-	{
-		delete this;
-	}
-	return ref;
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::TestCooperativeLevel() {

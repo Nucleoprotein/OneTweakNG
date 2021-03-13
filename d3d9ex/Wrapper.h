@@ -1,9 +1,7 @@
 #pragma once
 
 #include "comdef.h"
-
-#include "d3d9.h"
-#include "xinput.h"
+#include <d3d9.h>
 
 template <class T>
 class WrapperBase 
@@ -104,12 +102,12 @@ private:
 extern "C"
 {
 
-	IDirect3D9 * WINAPI _Direct3DCreate9(UINT SDKVersion)
+	IDirect3D9* WINAPI _Direct3DCreate9(UINT SDKVersion)
 	{
 		return D3D9DLL::Get().Direct3DCreate9(SDKVersion);
 	}
 
-	HRESULT WINAPI _Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
+	HRESULT WINAPI _Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 	{
 		return D3D9DLL::Get().Direct3DCreate9Ex(SDKVersion, ppD3D);
 	}

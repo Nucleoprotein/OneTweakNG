@@ -33,16 +33,13 @@
     <ClInclude Include="Context.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Settings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Wrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IDirect3DVertexBuffer9.h">
+    <ClInclude Include="XInputManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="XInputManager.h">
+    <ClInclude Include="Settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,10 +62,10 @@
     <ClCompile Include="Context.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IDirect3DVertexBuffer9.cpp">
+    <ClCompile Include="XInputManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="XInputManager.cpp">
+    <ClCompile Include="VertexFix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

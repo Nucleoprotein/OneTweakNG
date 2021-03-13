@@ -1,15 +1,33 @@
 // wrapper for IDirect3D9 in d3d9.h
 // generated using wrapper_gen.rb
 
-#include "d3d9.h"
+#include <d3d9.h>
+
 #include "IDirect3DDevice9.h"
 
 interface hkIDirect3D9 final : public IDirect3D9 {
 public:
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)();
-	STDMETHOD_(ULONG, Release)();
+    ULONG STDMETHODCALLTYPE AddRef() {
+        uint32_t refCount = m_refCount++;
+        if (!refCount)
+            AddRefPrivate();
+        return refCount + 1;
+    }
+
+    ULONG STDMETHODCALLTYPE Release() {
+        ULONG refCount = this->m_refCount;
+        if (refCount != 0ul) {
+            this->m_refCount--;
+            refCount--;
+
+            if (refCount == 0ul)
+                this->ReleasePrivate();
+        }
+
+        return refCount;
+    }
 	STDMETHOD(RegisterSoftwareDevice)(void* pInitializeFunction);
 	STDMETHOD_(UINT, GetAdapterCount)();
 	STDMETHOD(GetAdapterIdentifier)(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9* pIdentifier);
@@ -25,20 +43,32 @@ public:
 	STDMETHOD_(HMONITOR, GetAdapterMonitor)(UINT Adapter);
 	STDMETHOD(CreateDevice)(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
 
-public:
-	hkIDirect3D9(IDirect3D9 *pIDirect3D9)
+
+	hkIDirect3D9(IDirect3D9* pIDirect3D9)
 		: m_pWrapped(pIDirect3D9)
 	{
+		m_pWrapped->AddRef();
 	}
+
+	virtual ~hkIDirect3D9(){while (m_pWrapped->Release());}
+
 
 private:
-	~hkIDirect3D9()
-	{
-		m_pWrapped->Release();
+	IDirect3D9* m_pWrapped;
+    std::atomic<uint32_t> m_refCount = { 0ul };
+    std::atomic<uint32_t> m_refPrivate = { 1ul };
+
+	void AddRefPrivate() {
+		++m_refPrivate;
 	}
 
-	LONG m_refCount = 1;
-	IDirect3D9 *m_pWrapped;
+	void ReleasePrivate() {
+		uint32_t refPrivate = --m_refPrivate;
+		if (!refPrivate) {
+			m_refPrivate += 0x80000000;
+			delete this;
+		}
+	}
 };
 
 
