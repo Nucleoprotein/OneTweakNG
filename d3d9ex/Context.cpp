@@ -203,25 +203,14 @@ bool MainContext::CheckWindow(HWND hWnd)
 	bool class_found = config.GetWindowWindowClass().compare(className.get()) == 0;
 	bool window_found = config.GetWindowWindowName().compare(windowName.get()) == 0;
 	bool force = config.GetBorderlessAllWindows();
-	bool ff13fix = OneTimeFixInit(className);
+	bool ff13fix = OneTimeFixInit(className, hWnd);
 
 	return class_found || window_found || force || ff13fix;
 }
 
 void MainContext::ApplyWindow(HWND hWnd)
 {
-	HWND insertAfter = HWND_TOP;
-	if (config.GetWindowTopMost() && !context.IsDXVK())
-		insertAfter = HWND_TOPMOST;
-
-	SetWindowPos(hWnd, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
-	SetFocus(hWnd);
-
-	// fixes DXVK window in background, no need to click anymore
-	if (context.IsDXVK())
-		SetForegroundWindow(hWnd);
-
-	if (config.GetOptionsAlwaysActive() || config.GetOptionsHideCursor() || IsDXVK())
+	if (config.GetOptionsAlwaysActive() || config.GetOptionsHideCursor())
 	{
 		context.oldWndProc = (WNDPROC)context.TrueSetWindowLongA(hWnd, GWLP_WNDPROC, (LONG_PTR)context.WindowProc);
 	}
@@ -273,7 +262,7 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			if (context.config.GetOptionsAlwaysActive())
 				return TRUE;
 
-			if (!context.config.GetOptionsForceHideCursor() || context.IsDXVK())
+			if (!context.config.GetOptionsForceHideCursor())
 				while (::ShowCursor(TRUE) < 0);
 			break;
 		}
@@ -281,10 +270,9 @@ LRESULT CALLBACK MainContext::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 	case WM_ACTIVATEAPP:
 		if (context.config.GetOptionsAlwaysActive())
 			return TRUE;
-
 	}
 
-	if (context.config.GetOptionsForceHideCursor() || context.IsDXVK())
+	if (context.config.GetOptionsForceHideCursor())
 		while (::ShowCursor(FALSE) >= 0);
 
 	return CallWindowProc(context.oldWndProc, hWnd, uMsg, wParam, lParam);

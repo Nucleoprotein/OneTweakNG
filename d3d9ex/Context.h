@@ -65,8 +65,6 @@ private:
 	enum class AutoFixes : u32
 	{
 		NONE = 0,
-		RESIDENT_EVIL_4,
-		KINGS_BOUNTY_LEGEND,
 		FINAL_FANTASY_XIII,
 		FINAL_FANTASY_XIII2,
 	};
@@ -74,6 +72,7 @@ private:
 	void EnableAutoFix();
 
 	AutoFixes autofix = AutoFixes::NONE;
+	HWND hWndFF13 = 0;
 
 	std::mutex fix_mutex;
 
@@ -140,7 +139,7 @@ private:
 	void FF13_2_OneTimeFixes();
 	void FF13_2_EnableControllerVibration();
 
-	bool OneTimeFixInit(std::unique_ptr<wchar_t[]>& className);
+	bool OneTimeFixInit(std::unique_ptr<wchar_t[]>& className, HWND hWnd);
 	std::atomic_bool otf_init = false;
 
 	static void Fix_Thread();

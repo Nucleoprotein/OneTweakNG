@@ -136,12 +136,14 @@ HRESULT MainContext::CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UIN
 
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
-bool MainContext::OneTimeFixInit(std::unique_ptr<wchar_t[]>& className)
+bool MainContext::OneTimeFixInit(std::unique_ptr<wchar_t[]>& className, HWND hWnd)
 {
 	if (wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
 		otf_init = true;
+		hWndFF13 = hWnd;
+		return true;
 	}
-	return otf_init;
+	return false;
 }
 
 void MainContext::OneTimeFix()
@@ -201,6 +203,10 @@ void MainContext::FF13_InitializeGameAddresses()
 }
 
 void MainContext::FF13_OneTimeFixes() {
+
+	if (IsDXVK())
+		SetForegroundWindow(hWndFF13);
+
 	FF13_NOPIngameFrameRateLimitSetter();
 	FF13_RemoveContinuousControllerScan();
 	FF13_FixScissorRect();
@@ -305,6 +311,9 @@ void MainContext::FF13_SetFrameRateVariables()
 
 void MainContext::FF13_2_OneTimeFixes()
 {
+	if (IsDXVK())
+		SetForegroundWindow(hWndFF13);
+
 	if (*ff13_2_frame_pacer_ptr_address) {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
 		PrintLog("Frame pacer disabled");
