@@ -197,12 +197,21 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_party_screen_scissor_scaling_factor_2 = baseAddr + 0x668E1E;
 	ff13_party_screen_scissor_scaling_factor_3 = baseAddr + 0x668E56;
 	ff13_party_screen_scissor_scaling_factor_4 = baseAddr + 0x668E91;
+	ff13_message_box_call_address = baseAddr + 0xA8A98F;
+}
+
+void MainContext::ForceWindowActivate(const HWND hWnd) {
+	PostMessage(hWnd, WM_ACTIVATE, WA_INACTIVE, NULL);
+	PostMessage(hWnd, WM_ACTIVATE, WA_CLICKACTIVE, NULL);
 }
 
 void MainContext::FF13_OneTimeFixes() {
 
-	if (IsDXVK())
-		SetForegroundWindow(hWndFF13);
+	if (IsDXVK()) {
+		PatchMessageBox(ff13_message_box_call_address);
+	}
+
+	ForceWindowActivate(hWndFF13);
 
 	FF13_NOPIngameFrameRateLimitSetter();
 	FF13_RemoveContinuousControllerScan();
@@ -309,8 +318,10 @@ void MainContext::FF13_SetFrameRateVariables()
 
 void MainContext::FF13_2_OneTimeFixes()
 {
-	if (IsDXVK())
-		SetForegroundWindow(hWndFF13);
+	ForceWindowActivate(hWndFF13);
+	if (IsDXVK()) {
+		PatchMessageBox(ff13_2_message_box_call_address);
+	}
 
 	if (*ff13_2_frame_pacer_ptr_address) {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
@@ -325,6 +336,22 @@ void MainContext::FF13_2_OneTimeFixes()
 	else {
 		PrintLog("Unable to apply FF13-2 One Time Fixes. Report this!");
 	}
+}
+
+void MainContext::PatchMessageBox(uint8_t* callInstructionAddress)
+{
+	PrintLog("Removing 'Quit game' textbox");
+	const int patchSize = 6;
+	uint8_t patch[patchSize];
+
+	// mov eax, IDYES
+	patch[0] = 0xB8;
+	*((uint32_t*)(patch + 1)) = IDYES;
+
+	// nop
+	patch[5] = 0x90;
+
+	MemPatch::Patch(callInstructionAddress, patch, patchSize);
 }
 
 void MainContext::FF13_2_EnableControllerVibration()
@@ -366,6 +393,7 @@ void MainContext::FF13_2_InitializeGameAddresses()
 	ff13_2_vibration_high_set_zero_address = baseAddr + 0x2A7226;
 	ff13_2_internal_res_w = (uint32_t*)(baseAddr + 0x1FA864C);
 	ff13_2_internal_res_h = ff13_2_internal_res_w + 1;
+	ff13_2_message_box_call_address = baseAddr + 0x8047C0;
 }
 
 void MainContext::FF13_2_RemoveContinuousControllerScan()

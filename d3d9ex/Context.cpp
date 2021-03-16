@@ -179,6 +179,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 				pPresentationParameters->SwapEffect = pPresentationParameters->MultiSampleType == D3DMULTISAMPLE_NONE ? D3DSWAPEFFECT_DISCARD : D3DSWAPEFFECT_FLIP;
 				pPresentationParameters->Windowed = TRUE;
 				pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+				
 				PrintLog("ForceWindowedMode");
 			}
 		}

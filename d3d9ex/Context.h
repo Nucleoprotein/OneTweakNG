@@ -93,6 +93,7 @@ private:
 	uint8_t* ff13_party_screen_scissor_scaling_factor_2 = NULL;
 	uint8_t* ff13_party_screen_scissor_scaling_factor_3 = NULL;
 	uint8_t* ff13_party_screen_scissor_scaling_factor_4 = NULL;
+	uint8_t* ff13_message_box_call_address = NULL;
 	uint32_t* ff13_internal_res_w;
 	uint32_t* ff13_internal_res_h;
 
@@ -104,6 +105,7 @@ private:
 	uint8_t** ff13_2_base_controller_input_address_ptr = NULL;
 	uint8_t* ff13_2_vibration_high_set_zero_address = NULL;
 	uint8_t* ff13_2_vibration_low_set_zero_address = NULL;
+	uint8_t* ff13_2_message_box_call_address = NULL;
 	uint32_t* ff13_2_internal_res_w;
 	uint32_t* ff13_2_internal_res_h;
 
@@ -139,6 +141,7 @@ private:
 	void PrintVersionInfo();
 
 	void FF13_InitializeGameAddresses();
+	
 	void FF13_OneTimeFixes();
 	void FF13_EnableControllerVibration();
 	void FF13_NOPIngameFrameRateLimitSetter();
@@ -154,8 +157,9 @@ private:
 	void FF13_2_EnableControllerVibration();
 
 	void AdjustVertexData(const uint32_t width, const uint32_t height);
-
 	bool MatchesExpectedVertexStream(const float* pVertexStreamZeroData);
+	void ForceWindowActivate(const HWND hWnd);
+	void PatchMessageBox(uint8_t* callInstructionAddress);
 
 	bool OneTimeFixInit(std::unique_ptr<wchar_t[]>& className, HWND hWnd);
 	std::atomic_bool otf_init = false;
