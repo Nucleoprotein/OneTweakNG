@@ -49,7 +49,7 @@ public:
 	void ApplyBehaviorFlagsFix(DWORD* flags);
 	HRESULT SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST RECT* rect);
 	HRESULT CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
-	HRESULT SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport);
+	HRESULT DrawPrimitiveUP(IDirect3DDevice9* pIDirect3DDevice9, D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride);
 	bool BehaviorFlagsToString(DWORD BehaviorFlags, std::string* BehaviorFlagsString);
 
 	bool CheckWindow(HWND hWnd);
@@ -107,6 +107,20 @@ private:
 	uint32_t* ff13_2_internal_res_w;
 	uint32_t* ff13_2_internal_res_h;
 
+	float expectedDrawPrimitiveUpVertexData[5 * 4]
+	{ -1.00f - 1.0f / 1280.0f,       1.00f + 1.0f / 720.0f,    0.0f,    0.0f,    0.0f,
+	   1.00f - 1.0f / 1280.0f,       1.00f + 1.0f / 720.0f,    0.0f,    1.0f,    0.0f,
+	   1.00f - 1.0f / 1280.0f,      -1.00f + 1.0f / 720.0f,    0.0f,    1.0f,    1.0f,
+	  -1.00f - 1.0f / 1280.0f,      -1.00f + 1.0f / 720.0f,    0.0f,    0.0f,    1.0f
+	};
+
+	float fixedDrawPrimitiveUpVertexData[5 * 4]
+	{ -1.00f,       1.00f,    0.0f,    0.0f,    0.0f,
+	   1.00f,       1.00f,    0.0f,    1.0f,    0.0f,
+	   1.00f,      -1.00f,    0.0f,    1.0f,    1.0f,
+	  -1.00f,      -1.00f,    0.0f,    0.0f,    1.0f
+	};
+
 	const float FF13_2_30_FPS = 30.0F;
 	const float FF13_2_MAX_FRAME_CAP = 1000.0F;
 
@@ -138,6 +152,10 @@ private:
 	void FF13_2_AddHookIngameFrameRateLimitSetter();
 	void FF13_2_OneTimeFixes();
 	void FF13_2_EnableControllerVibration();
+
+	void AdjustVertexData(const uint32_t width, const uint32_t height);
+
+	bool MatchesExpectedVertexStream(const float* pVertexStreamZeroData);
 
 	bool OneTimeFixInit(std::unique_ptr<wchar_t[]>& className, HWND hWnd);
 	std::atomic_bool otf_init = false;

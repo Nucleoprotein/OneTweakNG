@@ -87,28 +87,6 @@ HRESULT MainContext::SetScissorRect(IDirect3DDevice9* pIDirect3DDevice9, CONST R
 	return pIDirect3DDevice9->SetScissorRect(rect);
 }
 
-HRESULT MainContext::SetViewport(IDirect3DDevice9* pIDirect3DDevice9, CONST D3DVIEWPORT9* pViewport)
-{
-	// DXVK fixes this better
-	if(IsDXVK())
-		return pIDirect3DDevice9->SetViewport(pViewport);
-	
-	if (pViewport)
-	{
-		D3DVIEWPORT9* vp = const_cast<D3DVIEWPORT9*>(pViewport);
-		if (pViewport->Width > 1920 && pViewport->Height > 1080)
-		{
-			vp->Width--;
-			vp->X++;
-
-			vp->Height--;
-			vp->Y++;
-			return pIDirect3DDevice9->SetViewport(vp);
-		}
-	}
-	return pIDirect3DDevice9->SetViewport(pViewport);
-}
-
 // hate this workaround but we cant directly mix d3d9 include with and without defined CINTERFACE
 namespace cinterface {
 	void VertexBufferFix(IDirect3DVertexBuffer9* pVertexBuffer);
@@ -136,6 +114,25 @@ HRESULT MainContext::CreateVertexBuffer(IDirect3DDevice9* pIDirect3DDevice9, UIN
 
 	return pIDirect3DDevice9->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
+HRESULT MainContext::DrawPrimitiveUP(IDirect3DDevice9* pIDirect3DDevice9, D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, const void* pVertexStreamZeroData, UINT VertexStreamZeroStride)
+{
+	if (PrimitiveType == D3DPT_TRIANGLEFAN && PrimitiveCount == 2 && VertexStreamZeroStride == 20 && MatchesExpectedVertexStream((const float*)pVertexStreamZeroData)) {
+		return pIDirect3DDevice9->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, fixedDrawPrimitiveUpVertexData, VertexStreamZeroStride);
+	}
+	else {
+		return pIDirect3DDevice9->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+	}
+}
+
+bool MainContext::MatchesExpectedVertexStream(const float* pVertexStreamZeroData) {
+	for (int i = 0; i < 4 * 5; i++) {
+		if (fabs(expectedDrawPrimitiveUpVertexData[i] - pVertexStreamZeroData[i]) > 0.000001f) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool MainContext::OneTimeFixInit(std::unique_ptr<wchar_t[]>& className, HWND hWnd)
 {
 	if (wcscmp(className.get(), L"SQEX.CDev.Engine.Framework.MainWindow") == 0) {
@@ -212,6 +209,7 @@ void MainContext::FF13_OneTimeFixes() {
 	FF13_FixScissorRect();
 	FF13_EnableControllerVibration();
 	FF13_SetFrameRateVariables();
+	AdjustVertexData(*ff13_internal_res_w, *ff13_internal_res_h);
 
 	PrintLog("Finished FF13 One Time Fixes");
 }
@@ -321,6 +319,7 @@ void MainContext::FF13_2_OneTimeFixes()
 		FF13_2_AddHookIngameFrameRateLimitSetter();
 		FF13_2_RemoveContinuousControllerScan();
 		FF13_2_EnableControllerVibration();
+		AdjustVertexData(*ff13_2_internal_res_w, *ff13_2_internal_res_h);
 		PrintLog("Finished FF13-2 One Time Fixes");
 	}
 	else {
@@ -340,6 +339,17 @@ void MainContext::FF13_2_EnableControllerVibration()
 	MemPatch::Nop(ff13_2_vibration_high_set_zero_address, 5);
 
 	xinputManager = new XInputManager(ff13_2_base_controller_input_address_ptr, config.GetFFXIIIVibrationStrengthFactor());
+}
+
+void MainContext::AdjustVertexData(const uint32_t width, const uint32_t height)
+{
+	const float widthHalfPixelSize = 1.0f / width;
+	const float heightHalfPixelSize = 1.0f / height;
+	for (int i = 0; i < 4; i++) {
+		const unsigned int rowBaseIndex = i * 5;
+		context.fixedDrawPrimitiveUpVertexData[rowBaseIndex] -= widthHalfPixelSize;
+		context.fixedDrawPrimitiveUpVertexData[1 + rowBaseIndex] += heightHalfPixelSize;
+	}
 }
 
 void MainContext::FF13_2_InitializeGameAddresses()
