@@ -205,11 +205,6 @@ void MainContext::ForceWindowActivate(const HWND hWnd) {
 	PostMessage(hWnd, WM_ACTIVATE, WA_CLICKACTIVE, NULL);
 }
 
-void MainContext::ForceWindowActivate(const HWND hWnd) {
-	PostMessage(hWnd, WM_ACTIVATE, WA_INACTIVE, NULL);
-	PostMessage(hWnd, WM_ACTIVATE, WA_CLICKACTIVE, NULL);
-}
-
 void MainContext::FF13_OneTimeFixes() {
 
 	if (IsDXVK()) {
@@ -324,12 +319,9 @@ void MainContext::FF13_SetFrameRateVariables()
 void MainContext::FF13_2_OneTimeFixes()
 {
 	ForceWindowActivate(hWndFF13);
-<<<<<<< HEAD
 	if (IsDXVK()) {
 		PatchMessageBox(ff13_2_message_box_call_address);
 	}
-=======
->>>>>>> 86eae4b... Fix mouse input at start when using borderless mode
 
 	if (*ff13_2_frame_pacer_ptr_address) {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
