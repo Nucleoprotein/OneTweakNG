@@ -38,7 +38,7 @@ By default the game forced a 60Hz refresh rate in full screen mode. With this mo
 ## Changes to where the memory is allocated on certain vertex buffers
 This considerably improves the frame rate when 2D elements are being disabled on the screen (i.e. minimap or battle menu HUD). This fix is not new, it is from [OneTweakNG](https://github.com/Nucleoprotein/OneTweakNG).
 
-## Works around pixelated screen bug that happens when using 2560x1440 resolution
+## Fixes misaligned screen space effects (fixes 1440p resolution)
 
 ## Fix the enemy scan text on resolutions over 720p (FFXIII only)
 The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/api/d3d9helper/nf-d3d9helper-idirect3ddevice9-setscissorrect) using a rectangle hardcoded with the 720p coordenates. This correct the coordenates and rectangle size in order to fix it.
@@ -51,4 +51,4 @@ The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/a
 * This is currently not compatible with GeDoSaTo. 
 * I strongly recommend forcing anisotropic filtering on your GPU driver to improve the quality of the textures.
 * Using "Maximum Performance" power management in the GPU driver can also help keeping the frame rate smooth. 
-* If you are using dxvk, rename its x86 dll file to dxvk.dll and keep FF13Fix as d3d9.dll
+* If you are using ```dxvk```, rename its x86 dll file to ```dxvk.dll``` and keep FF13Fix as ```d3d9.dll```
