@@ -198,6 +198,7 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_party_screen_scissor_scaling_factor_3 = baseAddr + 0x668E56;
 	ff13_party_screen_scissor_scaling_factor_4 = baseAddr + 0x668E91;
 	ff13_message_box_call_address = baseAddr + 0xA8A98F;
+	ff13_message_box_stack_push_address = baseAddr + 0xA8A982;
 }
 
 void MainContext::ForceWindowActivate(const HWND hWnd) {
@@ -208,7 +209,7 @@ void MainContext::ForceWindowActivate(const HWND hWnd) {
 void MainContext::FF13_OneTimeFixes() {
 
 	if (IsDXVK()) {
-		PatchMessageBox(ff13_message_box_call_address);
+		FF13_PatchMessageBox();
 	}
 
 	ForceWindowActivate(hWndFF13);
@@ -221,6 +222,17 @@ void MainContext::FF13_OneTimeFixes() {
 	AdjustVertexData(*ff13_internal_res_w, *ff13_internal_res_h);
 
 	PrintLog("Finished FF13 One Time Fixes");
+}
+
+void MainContext::FF13_PatchMessageBox()
+{
+	PrintLog("Removing 'Quit game' textbox");
+
+	MemPatch::Nop(ff13_message_box_stack_push_address, 1);
+	MemPatch::Nop(ff13_message_box_stack_push_address + 1 * 4, 1);
+	MemPatch::Nop(ff13_message_box_stack_push_address + 2 * 4, 1);
+	MemPatch::Nop(ff13_message_box_stack_push_address + 3 * 4, 1);
+	PatchMessageBoxCall(ff13_message_box_call_address);
 }
 
 void MainContext::FF13_EnableControllerVibration()
@@ -320,7 +332,7 @@ void MainContext::FF13_2_OneTimeFixes()
 {
 	ForceWindowActivate(hWndFF13);
 	if (IsDXVK()) {
-		PatchMessageBox(ff13_2_message_box_call_address);
+		FF13_2_PatchMessageBox();
 	}
 
 	if (*ff13_2_frame_pacer_ptr_address) {
@@ -338,9 +350,17 @@ void MainContext::FF13_2_OneTimeFixes()
 	}
 }
 
-void MainContext::PatchMessageBox(uint8_t* callInstructionAddress)
+void MainContext::FF13_2_PatchMessageBox()
 {
 	PrintLog("Removing 'Quit game' textbox");
+
+	// NOP push of registers to call MessageBox
+	MemPatch::Nop(ff13_2_message_box_stack_push_address, 5);
+	PatchMessageBoxCall(ff13_2_message_box_call_address);
+}
+
+void MainContext::PatchMessageBoxCall(uint8_t* callInstructionAddress)
+{
 	const int patchSize = 6;
 	uint8_t patch[patchSize];
 
@@ -394,6 +414,7 @@ void MainContext::FF13_2_InitializeGameAddresses()
 	ff13_2_internal_res_w = (uint32_t*)(baseAddr + 0x1FA864C);
 	ff13_2_internal_res_h = ff13_2_internal_res_w + 1;
 	ff13_2_message_box_call_address = baseAddr + 0x8047C0;
+	ff13_2_message_box_stack_push_address = baseAddr + 0x8047B4;
 }
 
 void MainContext::FF13_2_RemoveContinuousControllerScan()
