@@ -9,25 +9,29 @@ interface hkIDirect3D9 final : public IDirect3D9 {
 public:
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
-    ULONG STDMETHODCALLTYPE AddRef() {
-        uint32_t refCount = m_refCount++;
-        if (!refCount)
-            AddRefPrivate();
-        return refCount + 1;
-    }
+	ULONG STDMETHODCALLTYPE AddRef() {
+		m_refPrivate++;
+		m_refCount = m_pWrapped->AddRef();
+		if (m_refCount > m_refPrivate) {
+			// you should not see this ever
+			PrintLog("WARNING: Internal reference counting to low, adjusting %u->%u", m_refPrivate.load(), m_refCount.load());
+			m_refPrivate = m_refCount + 1;
+		}
 
-    ULONG STDMETHODCALLTYPE Release() {
-        ULONG refCount = this->m_refCount;
-        if (refCount != 0ul) {
-            this->m_refCount--;
-            refCount--;
+		return m_refCount + 1;
+	}
 
-            if (refCount == 0ul)
-                this->ReleasePrivate();
-        }
+	ULONG STDMETHODCALLTYPE Release() {
+		if (m_refPrivate == 0ul)
+			delete this;
 
-        return refCount;
-    }
+		if (m_refPrivate != 0ul) {
+			m_refPrivate--;
+
+			m_refCount = m_pWrapped->Release();
+		}
+		return m_refCount + 1;
+	}
 	STDMETHOD(RegisterSoftwareDevice)(void* pInitializeFunction);
 	STDMETHOD_(UINT, GetAdapterCount)();
 	STDMETHOD(GetAdapterIdentifier)(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9* pIdentifier);
@@ -47,7 +51,6 @@ public:
 	hkIDirect3D9(IDirect3D9* pIDirect3D9)
 		: m_pWrapped(pIDirect3D9)
 	{
-		m_pWrapped->AddRef();
 	}
 
 	virtual ~hkIDirect3D9(){while (m_pWrapped->Release());}
@@ -57,18 +60,6 @@ private:
 	IDirect3D9* m_pWrapped;
     std::atomic<uint32_t> m_refCount = { 0ul };
     std::atomic<uint32_t> m_refPrivate = { 1ul };
-
-	void AddRefPrivate() {
-		++m_refPrivate;
-	}
-
-	void ReleasePrivate() {
-		uint32_t refPrivate = --m_refPrivate;
-		if (!refPrivate) {
-			m_refPrivate += 0x80000000;
-			delete this;
-		}
-	}
 };
 
 

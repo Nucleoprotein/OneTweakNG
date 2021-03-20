@@ -9,23 +9,27 @@ public:
 	// original interface
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj);
 	ULONG STDMETHODCALLTYPE AddRef() {
-		uint32_t refCount = m_refCount++;
-		if (!refCount)
-			AddRefPrivate();
-		return refCount + 1;
+		m_refPrivate++;
+		m_refCount = m_pWrapped->AddRef();
+		if (m_refCount > m_refPrivate) {
+			// you should not see this ever
+			PrintLog("WARNING: Internal reference counting to low, adjusting %u->%u", m_refPrivate.load(), m_refCount.load());
+			m_refPrivate = m_refCount + 1;
+		}
+
+		return m_refCount + 1;
 	}
 
 	ULONG STDMETHODCALLTYPE Release() {
-		ULONG refCount = this->m_refCount;
-		if (refCount != 0ul) {
-			this->m_refCount--;
-			refCount--;
+		if (m_refPrivate == 0ul)
+			delete this;
 
-			if (refCount == 0ul)
-				this->ReleasePrivate();
+		if (m_refPrivate != 0ul) {
+			m_refPrivate--;
+
+			m_refCount = m_pWrapped->Release();
 		}
-
-		return refCount;
+		return m_refCount + 1;
 	}
 	STDMETHOD(TestCooperativeLevel)();
 	STDMETHOD_(UINT, GetAvailableTextureMem)();
@@ -147,7 +151,6 @@ public:
 	hkIDirect3DDevice9(IDirect3DDevice9* pIDirect3DDevice9)
 		: m_pWrapped(pIDirect3DDevice9)
 	{
-		m_pWrapped->AddRef();
 	}
 
 	virtual ~hkIDirect3DDevice9() { while (m_pWrapped->Release()); }
@@ -156,17 +159,5 @@ private:
 	IDirect3DDevice9* m_pWrapped;
 	std::atomic<uint32_t> m_refCount = { 0ul };
 	std::atomic<uint32_t> m_refPrivate = { 1ul };
-
-	void AddRefPrivate() {
-		++m_refPrivate;
-	}
-
-	void ReleasePrivate() {
-		uint32_t refPrivate = --m_refPrivate;
-		if (!refPrivate) {
-			m_refPrivate += 0x80000000;
-			delete this;
-		}
-	}
 };
 
