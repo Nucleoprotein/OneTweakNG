@@ -4,7 +4,7 @@
 #include "MemPatch.h"
 
 #include "Context.h"
-//#include "IDirect3DVertexBuffer9.h"
+#include <MinHook.h>
 
 void MainContext::EnableAutoFix()
 {
@@ -16,6 +16,7 @@ void MainContext::EnableAutoFix()
 		autofix = AutoFixes::FINAL_FANTASY_XIII;
 		PrintLog("AutoFix for \"Final Fantasy XIII\" enabled");
 		FF13_InitializeGameAddresses();
+		FF13_HandleLargeAddressAwarePatch();
 	}
 
 	if (exe_name == "ffxiii2img.exe")
@@ -37,6 +38,67 @@ const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behavi
 	//{ AutoFixes::FINAL_FANTASY_XIII, D3DCREATE_PUREDEVICE },
 	//{ AutoFixes::FINAL_FANTASY_XIII2, D3DCREATE_PUREDEVICE }
 };
+
+
+HANDLE WINAPI MainContext::HookCreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+	const char* ffxiiiimgPrt = strstr(lpFileName, "ffxiiiimg.exe");
+	if (ffxiiiimgPrt) {
+		PrintLog("HookCreateFileA Before Replacement: %s", lpFileName);
+
+		int arrayPosition = ffxiiiimgPrt - lpFileName;
+		int len = strlen(lpFileName);
+		char* newFileName = new char[len + 1];
+		strcpy_s(newFileName, len + 1, lpFileName);
+		const char* untouched = "untouched"; // needs to have the size of "ffxiiiimg"
+
+		memcpy(newFileName + arrayPosition, untouched, strlen(untouched));
+		PrintLog("HookCreateFileA After Replacement: %s", newFileName);
+		MH_STATUS disableHookCreateFileA = MH_DisableHook(CreateFileA);
+		PrintLog("disableHookCreateFileA = %d", disableHookCreateFileA);
+		MH_STATUS disableHookCreateFileW = MH_DisableHook(CreateFileW);
+		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
+		if (GetFileAttributesA(newFileName) == INVALID_FILE_ATTRIBUTES) {
+			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist?", newFileName);
+		}
+		HANDLE fileHandle = context.TrueCreateFileA(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
+		delete[] newFileName;
+		PrintLog("Returning File Handle");
+		return fileHandle;
+	}
+	else {
+		return context.TrueCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
+}
+
+HANDLE WINAPI MainContext::HookCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+	const wchar_t* ffxiiiimgPrt = wcsstr(lpFileName, L"ffxiiiimg.exe");;
+
+	if (ffxiiiimgPrt) {
+		PrintLog("HookCreateFileW Before Replacement: %s", lpFileName);
+
+		int arrayPosition = ffxiiiimgPrt - lpFileName;
+		int len = wcslen(lpFileName);
+		wchar_t* newFileName = new wchar_t[len + 1];
+		wcscpy_s(newFileName, len + 1, lpFileName);
+		const wchar_t* untouched = L"untouched"; //needs to have the size of L"ffxiiiimg"
+		wmemcpy(newFileName + arrayPosition, untouched, wcslen(untouched));
+		PrintLog("HookCreateFileW After Replacement: %s", newFileName);
+		MH_STATUS disableHookCreateFileA = MH_DisableHook(CreateFileA);
+		PrintLog("disableHookCreateFileA = %d", disableHookCreateFileA);
+		MH_STATUS disableHookCreateFileW = MH_DisableHook(CreateFileW);
+		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
+		if (GetFileAttributesW(newFileName) == INVALID_FILE_ATTRIBUTES) {
+			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist?", newFileName);
+		}
+		HANDLE fileHandle = context.TrueCreateFileW(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
+		delete[] newFileName;
+		PrintLog("Returning File Handle");
+		return fileHandle;
+	}
+	else {
+		return context.TrueCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
+}
 
 void MainContext::FixBehaviorFlagConflict(const DWORD flags_in, DWORD* flags_out)
 {
@@ -199,6 +261,38 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_party_screen_scissor_scaling_factor_4 = baseAddr + 0x668E91;
 	ff13_message_box_call_address = baseAddr + 0xA8A98F;
 	ff13_message_box_stack_push_address = baseAddr + 0xA8A982;
+	ff13_exe_large_address_aware_flag_address = baseAddr + 0x126;
+	ff13_exe_checksum_address = baseAddr + 0x168;
+}
+
+void MainContext::FF13_HandleLargeAddressAwarePatch() {
+	const uint8_t laaMask = 0x20;
+	if (*ff13_exe_large_address_aware_flag_address && laaMask) {
+		PrintLog("LargeAddressAwarePatch found. Make sure untouched.exe is an unmodified copy of ffxiiiimg.exe");
+		const MH_STATUS createHookCreateFileA = MH_CreateHook(CreateFileA, HookCreateFileA, reinterpret_cast<void**>(&TrueCreateFileA));
+		PrintLog("createHookCreateFileA = %d", createHookCreateFileA);
+		const MH_STATUS enableHookCreateFileA = MH_EnableHook(CreateFileA);
+		PrintLog("enableHookCreateFileA = %d", enableHookCreateFileA);
+
+		const MH_STATUS createHookCreateFileW = MH_CreateHook(CreateFileW, HookCreateFileW, reinterpret_cast<void**>(&TrueCreateFileW));
+		PrintLog("createHookCreateFileW = %d", createHookCreateFileW);
+		const MH_STATUS enableHookCreateFileW = MH_EnableHook(CreateFileW);
+		PrintLog("enableHookCreateFileW = %d", enableHookCreateFileW);
+
+		uint8_t new_ff13_exe_large_address_aware_flag = *ff13_exe_large_address_aware_flag_address & ~laaMask;
+		MemPatch::Patch(ff13_exe_large_address_aware_flag_address, &new_ff13_exe_large_address_aware_flag, 1);
+		PrintLog("LargeAddressAware patched back = %d", *ff13_exe_large_address_aware_flag_address);
+
+		uint32_t new_ff13_exe_checksum = 0;
+		MemPatch::Patch(ff13_exe_checksum_address, &new_ff13_exe_checksum, sizeof(uint32_t));
+		PrintLog("Checksum patched back = %d", *ff13_exe_checksum_address);
+
+		PrintLog("LargeAddressAwarePatch handled");
+	}
+	else {
+		PrintLog("LargeAddressAwarePatch not found.");
+	}
+	
 }
 
 void MainContext::ForceWindowActivate(const HWND hWnd) {
