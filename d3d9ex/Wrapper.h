@@ -80,7 +80,14 @@ public:
 
 	D3D9DLL()
 	{
-		WrapperLoad("dxvk.dll", false, false) ? m_isdxvk = true : WrapperLoad("d3d9.dll");
+		m_isdxvk = WrapperLoad("dxvk.dll", false, false);
+		
+		if (!m_isdxvk) {
+			const bool isreshade = WrapperLoad("ReShade32.dll", false, false);
+			if (!isreshade) {
+				WrapperLoad("d3d9.dll");
+			}
+		}
 
 		StoreAddress(&Direct3DCreate9, "Direct3DCreate9");
 		StoreAddress(&Direct3DCreate9Ex, "Direct3DCreate9Ex");
