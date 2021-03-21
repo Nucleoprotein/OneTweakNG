@@ -50,8 +50,6 @@ MainContext::MainContext()
 	LogFile("FF13Fix.log");
 	context.PrintVersionInfo();
 
-	if (config.GetOptionsAutoFix()) EnableAutoFix();
-
 	PrintLog("Enabling hooks:");
 	const MH_STATUS initializeHooks = MH_Initialize();
 	PrintLog("initializeHooks = %d", initializeHooks);
@@ -80,6 +78,8 @@ MainContext::MainContext()
 	PrintLog("createHookSetWindowLongW = %d", createHookSetWindowLongW);
 	const MH_STATUS enableHookSetWindowLongW = MH_EnableHook(SetWindowLongW);
 	PrintLog("enableHookSetWindowLongW = %d", enableHookSetWindowLongW);
+
+	if (config.GetOptionsAutoFix()) EnableAutoFix();
 }
 
 MainContext::~MainContext()

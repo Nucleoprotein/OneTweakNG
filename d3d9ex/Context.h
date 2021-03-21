@@ -41,6 +41,8 @@ class MainContext
 	DECLARE_HOOK(HWND, WINAPI, CreateWindowExW, DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName,
 	DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 
+	DECLARE_HOOK(HANDLE, WINAPI, CreateFileA, LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+	DECLARE_HOOK(HANDLE, WINAPI, CreateFileW, LPCWSTR lpFileName,DWORD dwDesiredAccess,DWORD dwShareMode,LPSECURITY_ATTRIBUTES lpSecurityAttributes,DWORD dwCreationDisposition,DWORD dwFlagsAndAttributes,HANDLE hTemplateFile);
 public:
 	MainContext();
 	virtual ~MainContext();
@@ -95,6 +97,8 @@ private:
 	uint8_t* ff13_party_screen_scissor_scaling_factor_4 = NULL;
 	uint8_t* ff13_message_box_stack_push_address = NULL;
 	uint8_t* ff13_message_box_call_address = NULL;
+	uint8_t* ff13_exe_large_address_aware_flag_address = NULL;
+	uint8_t* ff13_exe_checksum_address = NULL;
 	uint32_t* ff13_internal_res_w;
 	uint32_t* ff13_internal_res_h;
 
@@ -151,6 +155,7 @@ private:
 	void FF13_SetFrameRateVariables();
 	void FF13_FixScissorRect();
 	void FF13_RemoveContinuousControllerScan();
+	void FF13_HandleLargeAddressAwarePatch();
 
 	void FF13_2_CreateSetFrameRateCodeBlock();
 	void FF13_2_InitializeGameAddresses();
