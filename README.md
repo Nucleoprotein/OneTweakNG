@@ -54,7 +54,7 @@ You may wish to patch the games to allow them to access more than 4GB of RAM. Th
 # Usage with Reshade
 
 ## Regular Direct3D9 users:
-* Rename ReShade's ```d3d9.dll``` to ```ReShade32.dll```, keep FF13Fix as ```d3d9.dll```
+* Install ReShade first. Rename ReShade's ```d3d9.dll``` to ```ReShade32.dll```; Install FF13Fix normally, keeping FF13Fix as ```d3d9.dll```
 ## DXVK users: 
 * Install ReShade targeting Vulkan; enable it globally
 
