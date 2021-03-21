@@ -51,6 +51,13 @@ You may wish to patch the games to allow them to access more than 4GB of RAM. Th
 ## FF13-2: 
 * Patch ```ffxiii2img.exe``` (you can use https://ntcore.com/?page_id=371)
 
+# Usage with Reshade
+
+## Regular Direct3D9 users:
+* Rename ReShade's ```d3d9.dll``` to ```ReShade32.dll```, keep FF13Fix as ```d3d9.dll```
+## DXVK users: 
+* Install ReShade targeting Vulkan; enable it globally
+
 # Reporting issues
 * Please specify what game are you talking about, which mods are you using (dxvk?) post system specs, and post FF13Fix.log
 * Add a save file and steps to reproduce the issue if possible
