@@ -98,7 +98,7 @@ private:
 	uint8_t* ff13_message_box_stack_push_address = NULL;
 	uint8_t* ff13_message_box_call_address = NULL;
 	uint8_t* ff13_exe_large_address_aware_flag_address = NULL;
-	uint8_t* ff13_exe_checksum_address = NULL;
+	uint32_t* ff13_exe_checksum_address = NULL;
 	uint32_t* ff13_internal_res_w;
 	uint32_t* ff13_internal_res_h;
 

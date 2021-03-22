@@ -58,11 +58,12 @@ HANDLE WINAPI MainContext::HookCreateFileA(LPCSTR lpFileName, DWORD dwDesiredAcc
 		MH_STATUS disableHookCreateFileW = MH_DisableHook(CreateFileW);
 		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
 		if (GetFileAttributesA(newFileName) == INVALID_FILE_ATTRIBUTES) {
-			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist?", newFileName);
+			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist? Using the regular ffxiiiimg.exe", newFileName);
+			strcpy_s(newFileName, len + 1, lpFileName);
 		}
 		HANDLE fileHandle = context.TrueCreateFileA(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
+		PrintLog("Returning File Handle for %s", newFileName);
 		delete[] newFileName;
-		PrintLog("Returning File Handle");
 		return fileHandle;
 	}
 	else {
@@ -89,10 +90,11 @@ HANDLE WINAPI MainContext::HookCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAc
 		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
 		if (GetFileAttributesW(newFileName) == INVALID_FILE_ATTRIBUTES) {
 			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist?", newFileName);
+			wcscpy_s(newFileName, len + 1, lpFileName);
 		}
 		HANDLE fileHandle = context.TrueCreateFileW(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
+		PrintLog("Returning File Handle %s", newFileName);
 		delete[] newFileName;
-		PrintLog("Returning File Handle");
 		return fileHandle;
 	}
 	else {
@@ -262,13 +264,14 @@ void MainContext::FF13_InitializeGameAddresses()
 	ff13_message_box_call_address = baseAddr + 0xA8A98F;
 	ff13_message_box_stack_push_address = baseAddr + 0xA8A982;
 	ff13_exe_large_address_aware_flag_address = baseAddr + 0x126;
-	ff13_exe_checksum_address = baseAddr + 0x168;
+	ff13_exe_checksum_address = (uint32_t*)(baseAddr + 0x168);
 }
 
 void MainContext::FF13_HandleLargeAddressAwarePatch() {
 	const uint8_t laaMask = 0x20;
-	if (*ff13_exe_large_address_aware_flag_address && laaMask) {
-		PrintLog("LargeAddressAwarePatch found. Make sure untouched.exe is an unmodified copy of ffxiiiimg.exe");
+	if (*ff13_exe_large_address_aware_flag_address & laaMask) {
+		PrintLog("LargeAddressAwarePatch found. ff13_exe_large_address_aware_flag = 0x%02x; ff13_exe_checksum = 0x%08x", *ff13_exe_large_address_aware_flag_address, *ff13_exe_checksum_address);
+
 		const MH_STATUS createHookCreateFileA = MH_CreateHook(CreateFileA, HookCreateFileA, reinterpret_cast<void**>(&TrueCreateFileA));
 		PrintLog("createHookCreateFileA = %d", createHookCreateFileA);
 		const MH_STATUS enableHookCreateFileA = MH_EnableHook(CreateFileA);
@@ -281,11 +284,11 @@ void MainContext::FF13_HandleLargeAddressAwarePatch() {
 
 		uint8_t new_ff13_exe_large_address_aware_flag = *ff13_exe_large_address_aware_flag_address & ~laaMask;
 		MemPatch::Patch(ff13_exe_large_address_aware_flag_address, &new_ff13_exe_large_address_aware_flag, 1);
-		PrintLog("LargeAddressAware patched back = %d", *ff13_exe_large_address_aware_flag_address);
+		PrintLog("LargeAddressAware patched back. ff13_exe_large_address_aware_flag = 0x%02x;", *ff13_exe_large_address_aware_flag_address);
 
 		uint32_t new_ff13_exe_checksum = 0;
 		MemPatch::Patch(ff13_exe_checksum_address, &new_ff13_exe_checksum, sizeof(uint32_t));
-		PrintLog("Checksum patched back = %d", *ff13_exe_checksum_address);
+		PrintLog("Checksum patched back. ff13_exe_checksum = 0x%08x", *ff13_exe_checksum_address);
 
 		PrintLog("LargeAddressAwarePatch handled");
 	}
@@ -602,5 +605,5 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.6.2 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.6.3 https://github.com/rebtd7/FF13Fix");
 }

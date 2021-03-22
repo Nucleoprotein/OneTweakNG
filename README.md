@@ -44,7 +44,7 @@ This considerably improves the frame rate when 2D elements are being disabled on
 The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/api/d3d9helper/nf-d3d9helper-idirect3ddevice9-setscissorrect) using a rectangle hardcoded with the 720p coordenates. This correct the coordenates and rectangle size in order to fix it.
 
 # Usage with the 4GB Large Address Aware patch
-You may wish to patch the games to allow them to access more than 4GB of RAM. This seems to avoid crashes in FF13-2 (and may help FF13 under some configurations).
+You may wish to patch the games to allow them to access more than 2GB of RAM. This seems to avoid crashes in FF13-2 (and may help FF13 under some configurations).
 ## FF13:
 * Create a copy of the unpatched ```ffxiiiimg.exe``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin```. Name it ```untouched.exe```.
 * Patch the original ```ffxiiiimg.exe``` (you can use https://ntcore.com/?page_id=371)
