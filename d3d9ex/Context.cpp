@@ -10,6 +10,7 @@
 #include "SimpleIni.h"
 
 #include "IDirect3D9.h"
+#include "IDirect3DDevice9.h"
 #include "Context.h"
 #include "Wrapper.h"
 
@@ -59,6 +60,11 @@ MainContext::MainContext()
 	const MH_STATUS enableHookDirect3DCreate9 = MH_EnableHook(D3D9DLL::Get().Direct3DCreate9);
 	PrintLog("enableHookDirect3DCreate9 = %d", enableHookDirect3DCreate9);
 
+	const MH_STATUS createHookDirect3DCreate9Ex = MH_CreateHook(D3D9DLL::Get().Direct3DCreate9Ex, HookDirect3DCreate9Ex, reinterpret_cast<void**>(&TrueDirect3DCreate9Ex));
+	PrintLog("createHookDirect3DCreate9Ex = %d", createHookDirect3DCreate9Ex);
+	const MH_STATUS enableHookDirect3DCreate9Ex = MH_EnableHook(D3D9DLL::Get().Direct3DCreate9Ex);
+	PrintLog("enableHookDirect3DCreate9Ex = %d", enableHookDirect3DCreate9Ex);
+
 	const MH_STATUS createHookCreateWindowExA = MH_CreateHook(CreateWindowExA, HookCreateWindowExA, reinterpret_cast<void**>(&TrueCreateWindowExA));
 	PrintLog("createHookCreateWindowExA = %d", createHookCreateWindowExA);
 	const MH_STATUS enableHookCreateWindowExA = MH_EnableHook(CreateWindowExA);
@@ -89,13 +95,25 @@ MainContext::~MainContext()
 
 IDirect3D9* WINAPI MainContext::HookDirect3DCreate9(UINT SDKVersion)
 {
+	PrintLog(__FUNCTION__);
 	IDirect3D9* d3d9 = context.TrueDirect3DCreate9(SDKVersion);
-	if (d3d9)
-	{
-		return new hkIDirect3D9(d3d9);
+	if (d3d9) {
+		return new hkIDirect3D9(static_cast<IDirect3D9Ex*>(d3d9));
 	}
 
 	return d3d9;
+}
+
+HRESULT WINAPI MainContext::HookDirect3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppIDirect3D9Ex)
+{
+	PrintLog(__FUNCTION__);
+	HRESULT hr = context.TrueDirect3DCreate9Ex(SDKVersion, ppIDirect3D9Ex);
+	if (SUCCEEDED(hr)) {
+		hkIDirect3D9* pIDirect3D9Ex = new hkIDirect3D9(*ppIDirect3D9Ex);
+		*ppIDirect3D9Ex = pIDirect3D9Ex;
+	}
+
+	return hr;
 }
 
 bool MainContext::BehaviorFlagsToString(DWORD BehaviorFlags, std::string* BehaviorFlagsString)
@@ -179,7 +197,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 				pPresentationParameters->SwapEffect = pPresentationParameters->MultiSampleType == D3DMULTISAMPLE_NONE ? D3DSWAPEFFECT_DISCARD : D3DSWAPEFFECT_FLIP;
 				pPresentationParameters->Windowed = TRUE;
 				pPresentationParameters->FullScreen_RefreshRateInHz = 0;
-				
+
 				PrintLog("ForceWindowedMode");
 			}
 		}
