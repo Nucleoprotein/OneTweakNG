@@ -47,9 +47,9 @@ The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/a
 * Rename DXVK's x86 ```d3d9.dll``` file to ```dxvk.dll```. Keep FF13Fix as ```d3d9.dll```.
 
 
-# Usage with the 4GB Large Address Aware patch
+# Usage with the 4GB Large Address Aware patch (Recommended)
 You may wish to patch the games to allow them to access more than 2GB of RAM. 
-This seems to avoid crashes in FF13-2 and FF13 (especially when using triple buffering, playing on 4K+ resolutions, using DXVK and/or Reshade, using "HD" texture mods...)
+This seems to avoid crashes in FF13-2 and FF13 (especially when using triple buffering, playing on 4K+ resolutions, using DXVK and/or Reshade, or using HD texture/model mods).
 ## FF13:
 * Create a copy of the unpatched ```ffxiiiimg.exe``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin```. Name it ```untouched.exe```.
 * Patch the original ```ffxiiiimg.exe``` (you can use https://ntcore.com/?page_id=371)
