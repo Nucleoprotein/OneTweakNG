@@ -1,6 +1,3 @@
-// wrapper for IDirect3DDevice9 in d3d9.h
-// generated using wrapper_gen.rb
-
 #pragma once
 #include "stdafx.h"
 
@@ -17,15 +14,55 @@ HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) 
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 	if (ppvObj == nullptr) return E_POINTER;
 
-	if (riid == __uuidof(IUnknown) ||
-		riid == __uuidof(IDirect3DDevice9))
+	if (riid == __uuidof(this) ||
+		riid == __uuidof(IUnknown) ||
+		riid == __uuidof(IDirect3DDevice9) ||
+		riid == __uuidof(IDirect3DDevice9Ex))
 	{
-		*ppvObj = static_cast<IDirect3DDevice9*>(this);
+		if (!m_is_ex && riid == __uuidof(IDirect3DDevice9Ex))
+		{
+			//we are queried for IDirect3DDevice9Ex but we hold IDirect3DDevice9
+			//upgrade wrapped interface, query it
+			IDirect3DDevice9Ex* pIDirect3DDevice9Ex = nullptr;
+			HRESULT hr = m_pWrapped->QueryInterface(riid, reinterpret_cast<void**>(&pIDirect3DDevice9Ex));
+			if (FAILED(hr))
+				return hr;
+
+			// release one reference from old one and take new IDirect3DDevice9Ex pointer 
+			m_pWrapped->Release();
+			m_pWrapped = pIDirect3DDevice9Ex;
+			m_is_ex = true;
+		}
+
+		AddRef();
+		*ppvObj = this;
 		return S_OK;
 	}
 
-	*ppvObj = nullptr;
-	return E_NOINTERFACE;
+	return m_pWrapped->QueryInterface(riid, ppvObj);
+}
+
+ULONG STDMETHODCALLTYPE hkIDirect3DDevice9::AddRef() {
+	m_pWrapped->AddRef();
+	return InterlockedIncrement(&m_ref);
+}
+
+ULONG STDMETHODCALLTYPE hkIDirect3DDevice9::Release() {
+	const ULONG ref = InterlockedDecrement(&m_ref);
+	if (ref != 0) {
+		m_pWrapped->Release();
+		return ref;
+	}
+	const auto pWrapped = m_pWrapped;
+	m_pWrapped = nullptr;
+	delete this;
+
+	const ULONG ref_last = pWrapped->Release();
+	if (ref_last != 0) {
+		PrintLog("WARNING: Reference count for IDirect3DDevice9 is wrong: %p %u %u", this, ref, ref_last);
+	}
+
+	return 0;
 }
 
 HRESULT APIENTRY hkIDirect3DDevice9::TestCooperativeLevel() {
@@ -58,7 +95,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::GetDisplayMode(UINT iSwapChain, D3DDISPLAYM
 	return m_pWrapped->GetDisplayMode(iSwapChain, pMode);
 }
 
-HRESULT APIENTRY hkIDirect3DDevice9::GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS *pParameters) {
+HRESULT APIENTRY hkIDirect3DDevice9::GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS* pParameters) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 	return m_pWrapped->GetCreationParameters(pParameters);
 }
@@ -87,9 +124,9 @@ HRESULT APIENTRY hkIDirect3DDevice9::CreateAdditionalSwapChain(D3DPRESENT_PARAME
 HRESULT APIENTRY hkIDirect3DDevice9::GetSwapChain(UINT iSwapChain, IDirect3DSwapChain9** pSwapChain) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 
-	// Steam Overlay Fix
-	// Add some space, 16bytes should be enough
-	__nop();	__nop();	__nop();	__nop();	
+	// Steam Overlay crash fix
+	// Add some space, 16bytes should be more than enough
+	__nop();	__nop();	__nop();	__nop();
 	__nop();	__nop();	__nop();	__nop();
 	__nop();	__nop();	__nop();	__nop();
 	__nop();	__nop();	__nop();	__nop();
@@ -394,7 +431,7 @@ HRESULT APIENTRY hkIDirect3DDevice9::SetCurrentTexturePalette(UINT PaletteNumber
 	return m_pWrapped->SetCurrentTexturePalette(PaletteNumber);
 }
 
-HRESULT APIENTRY hkIDirect3DDevice9::GetCurrentTexturePalette(UINT *PaletteNumber) {
+HRESULT APIENTRY hkIDirect3DDevice9::GetCurrentTexturePalette(UINT* PaletteNumber) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 	return m_pWrapped->GetCurrentTexturePalette(PaletteNumber);
 }
@@ -617,4 +654,79 @@ HRESULT APIENTRY hkIDirect3DDevice9::DeletePatch(UINT Handle) {
 HRESULT APIENTRY hkIDirect3DDevice9::CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery) {
 	IDirect3DDevice9_PrintLog(__FUNCTION__);
 	return m_pWrapped->CreateQuery(Type, ppQuery);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::SetConvolutionMonoKernel(UINT width, UINT height, float* rows, float* columns) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->SetConvolutionMonoKernel(width, height, rows, columns);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::ComposeRects(IDirect3DSurface9* pSrc, IDirect3DSurface9* pDst, IDirect3DVertexBuffer9* pSrcRectDescs, UINT NumRects, IDirect3DVertexBuffer9* pDstRectDescs, D3DCOMPOSERECTSOP Operation, int Xoffset, int Yoffset) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->ComposeRects(pSrc, pDst, pSrcRectDescs, NumRects, pDstRectDescs, Operation, Xoffset, Yoffset);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::PresentEx(const RECT* pSourceRect, const RECT* pDestRect, HWND hDestWindowOverride, const RGNDATA* pDirtyRegion, DWORD dwFlags) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::GetGPUThreadPriority(INT* pPriority) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->GetGPUThreadPriority(pPriority);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::SetGPUThreadPriority(INT Priority) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->SetGPUThreadPriority(Priority);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::WaitForVBlank(UINT iSwapChain) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->WaitForVBlank(iSwapChain);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::CheckResourceResidency(IDirect3DResource9** pResourceArray, UINT32 NumResources) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->CheckResourceResidency(pResourceArray, NumResources);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::SetMaximumFrameLatency(UINT MaxLatency) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->SetMaximumFrameLatency(MaxLatency);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::GetMaximumFrameLatency(UINT* pMaxLatency) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->GetMaximumFrameLatency(pMaxLatency);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::CheckDeviceState(HWND hDestinationWindow) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->CheckDeviceState(hDestinationWindow);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::CreateRenderTargetEx(UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::CreateOffscreenPlainSurfaceEx(UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::CreateDepthStencilSurfaceEx(UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::ResetEx(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3DDevice9::GetDisplayModeEx(UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation) {
+	IDirect3DDevice9_PrintLog(__FUNCTION__);
+	return m_pWrapped->GetDisplayModeEx(iSwapChain, pMode, pRotation);
 }

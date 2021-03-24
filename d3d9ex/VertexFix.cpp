@@ -20,7 +20,7 @@ namespace cinterface
 	{
 		if (pVertexBuffer->lpVtbl->Lock && TrueLock == nullptr)
 		{
-			PrintLog("WARINING: Experimental DiscardUIVertexBuffer enabled!");
+			PrintLog("WARNING: Experimental DiscardUIVertexBuffer enabled!");
 			const MH_STATUS createHookLock = MH_CreateHook(pVertexBuffer->lpVtbl->Lock, HookLock, reinterpret_cast<void**>(&TrueLock));
 			PrintLog("CreateHookLock = %d", createHookLock);
 			const MH_STATUS enableHookLock = MH_EnableHook(pVertexBuffer->lpVtbl->Lock);

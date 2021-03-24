@@ -1,6 +1,3 @@
-// wrapper for IDirect3D9 in d3d9.h
-// generated using wrapper_gen.rb
-
 #include "stdafx.h"
 
 #include "Logger.h"
@@ -13,17 +10,57 @@
 
 HRESULT APIENTRY hkIDirect3D9::QueryInterface(REFIID riid, void** ppvObj) {
 	PrintLog(__FUNCTION__);
-	if (ppvObj == nullptr) return E_POINTER;
+	if (ppvObj == nullptr)
+		return E_POINTER;
 
-	if (riid == __uuidof(IUnknown) ||
-		riid == __uuidof(IDirect3D9))
+	if (riid == __uuidof(this) ||
+		riid == __uuidof(IUnknown) ||
+		riid == __uuidof(IDirect3D9) ||
+		riid == __uuidof(IDirect3D9Ex))
 	{
-		*ppvObj = static_cast<IDirect3D9*>(this);
+		if (!m_is_ex && riid == __uuidof(IDirect3D9Ex))
+		{
+			//we are queried for IDirect3D9Ex but we hold IDirect3D9
+			//upgrade wrapped interface, query it
+			IDirect3D9Ex* pIDirect3D9Ex = nullptr;
+			HRESULT hr = m_pWrapped->QueryInterface(riid, reinterpret_cast<void**>(&pIDirect3D9Ex));
+			if (FAILED(hr))
+				return hr;
+
+			// release one reference from old one and take new IDirect3DDevice9Ex pointer 
+			m_pWrapped->Release();
+			m_pWrapped = pIDirect3D9Ex;
+			m_is_ex = true;
+		}
+
+		AddRef();
+		*ppvObj = this;
 		return S_OK;
 	}
 
-	*ppvObj = nullptr;
-	return E_NOINTERFACE;
+	return m_pWrapped->QueryInterface(riid, ppvObj);
+}
+
+ULONG STDMETHODCALLTYPE hkIDirect3D9::AddRef() {
+	m_pWrapped->AddRef();
+	return InterlockedIncrement(&m_ref);
+}
+
+ULONG STDMETHODCALLTYPE hkIDirect3D9::Release() {
+	const ULONG ref = InterlockedDecrement(&m_ref);
+	if (ref != 0) {
+		m_pWrapped->Release();
+		return ref;
+	}
+	const auto pWrapped = m_pWrapped;
+	m_pWrapped = nullptr;
+	delete this;
+
+	const ULONG ref_last = pWrapped->Release();
+	if (ref_last != 0)
+		PrintLog("WARNING: Reference count for IDirect3D9 is wrong: %p %u %u", this, ref, ref_last);
+
+	return 0;
 }
 
 HRESULT APIENTRY hkIDirect3D9::RegisterSoftwareDevice(void* pInitializeFunction) {
@@ -44,7 +81,6 @@ HRESULT APIENTRY hkIDirect3D9::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D
 		pIdentifier->VendorId = context.config.GetAdapterVendorId();
 		pIdentifier->DeviceId = context.config.GetAdapterDeviceId();
 	}
-
 	return rt;
 }
 
@@ -101,6 +137,40 @@ HMONITOR APIENTRY hkIDirect3D9::GetAdapterMonitor(UINT Adapter) {
 
 HRESULT APIENTRY hkIDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface) {
 	PrintLog(__FUNCTION__);
+	return ApplyCreateDeviceFix<IDirect3DDevice9, false>(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+}
+
+UINT STDMETHODCALLTYPE hkIDirect3D9::GetAdapterModeCountEx(UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter) {
+	IDirect3D9_PrintLog(__FUNCTION__);
+
+	return static_cast<IDirect3D9Ex*>(m_pWrapped)->GetAdapterModeCountEx(Adapter, pFilter);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3D9::EnumAdapterModesEx(UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter, UINT Mode, D3DDISPLAYMODEEX* pMode) {
+	IDirect3D9_PrintLog(__FUNCTION__);
+	return static_cast<IDirect3D9Ex*>(m_pWrapped)->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3D9::GetAdapterDisplayModeEx(UINT Adapter, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation) {
+	IDirect3D9_PrintLog(__FUNCTION__);
+	return static_cast<IDirect3D9Ex*>(m_pWrapped)->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3D9::CreateDeviceEx(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface) {
+	PrintLog(__FUNCTION__);
+	return ApplyCreateDeviceFix<IDirect3DDevice9Ex, true>(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+}
+
+HRESULT STDMETHODCALLTYPE hkIDirect3D9::GetAdapterLUID(UINT Adapter, LUID* pLUID) {
+	IDirect3D9_PrintLog(__FUNCTION__);
+	return static_cast<IDirect3D9Ex*>(m_pWrapped)->GetAdapterLUID(Adapter, pLUID);
+}
+
+//TODO move this to other file
+template <typename T, bool ex>
+HRESULT hkIDirect3D9::ApplyCreateDeviceFix(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T** ppReturnedDeviceInterface)
+{
+	PrintLog(__FUNCTION__);
 
 	DWORD OriginalBehaviorFlags = BehaviorFlags;
 	std::string BehaviorFlagsString;
@@ -108,37 +178,47 @@ HRESULT APIENTRY hkIDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 
 	PrintLog("BehaviorFlags: %08X %s", BehaviorFlags, BehaviorFlagsString.c_str());
 
-	if (context.config.GetOptionsBehaviorFlags() > 0)
-	{
+	if (context.config.GetOptionsBehaviorFlags() > 0) {
 		BehaviorFlags = context.config.GetOptionsBehaviorFlags();
 		PrintLog("Advanced Mode: BehaviorFlags set");
 	}
-	else
-	{
+	else {
 		context.ApplyBehaviorFlagsFix(&BehaviorFlags);
 	}
 
-	if (hFocusWindow == NULL) hFocusWindow = pPresentationParameters->hDeviceWindow;
+	if (hFocusWindow == NULL)
+		hFocusWindow = pPresentationParameters->hDeviceWindow;
+
 	context.ApplyPresentationParameters(pPresentationParameters);
 
-	if (OriginalBehaviorFlags != BehaviorFlags)
-	{
+	if (OriginalBehaviorFlags != BehaviorFlags) {
 		std::string BehaviorFlagsString;
 		context.BehaviorFlagsToString(BehaviorFlags, &BehaviorFlagsString);
 		PrintLog("BehaviorFlags changed: %08X %s", BehaviorFlags, BehaviorFlagsString.c_str());
 	}
 
-	IDirect3DDevice9* device = nullptr;
-	HRESULT hr = m_pWrapped->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &device);
-	if (FAILED(hr))
-	{
+	T* device = nullptr;
+	HRESULT hr = S_FALSE;
+	bool is_ex;
+
+	if (ex) {
+		hr = m_pWrapped->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, reinterpret_cast<IDirect3DDevice9Ex**>(&device));
+		is_ex = true;
+	}
+	else {
+		hr = m_pWrapped->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, reinterpret_cast<IDirect3DDevice9**>(&device));
+		is_ex = false;
+	}
+
+	if (FAILED(hr)) {
 		PrintLog("CreateDevice fail with HRESULT: %08X", hr);
 		*ppReturnedDeviceInterface = nullptr;
 		return hr;
 	}
-	
-	context.OneTimeFix();
+	else {
+		*ppReturnedDeviceInterface = new hkIDirect3DDevice9(static_cast<IDirect3DDevice9Ex*>(device), is_ex);
+		context.OneTimeFix();
+	}
 
-	*ppReturnedDeviceInterface = new hkIDirect3DDevice9(device);
 	return hr;
 }

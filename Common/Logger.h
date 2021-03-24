@@ -21,7 +21,7 @@ public:
 
 	Logger() : m_systime(), m_console(INVALID_HANDLE_VALUE), m_file(INVALID_HANDLE_VALUE)  {}
 
-	Logger::~Logger()
+	virtual ~Logger()
 	{
 		if (m_console)
 			FreeConsole();
@@ -34,7 +34,7 @@ public:
 	std::mutex& writeMutex() const { return m_writeMutex; }
 #endif
 
-	static Logger& Logger::Get()
+	static Logger& Get()
 	{
 		static Logger instance;
 		return instance;

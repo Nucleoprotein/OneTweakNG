@@ -34,6 +34,7 @@ class MainContext
 	const MainContext& operator=(MainContext& other) = delete;
 
 	DECLARE_HOOK(IDirect3D9*, WINAPI, Direct3DCreate9, UINT SDKVersion);
+	DECLARE_HOOK(HRESULT, WINAPI, Direct3DCreate9Ex, UINT SDKVersion, IDirect3D9Ex** ppIDirect3D9Ex);
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongA, HWND hWnd, int nIndex, LONG dwNewLong);
 	DECLARE_HOOK(LONG, WINAPI, SetWindowLongW, HWND hWnd, int nIndex, LONG dwNewLong);
 	DECLARE_HOOK(HWND, WINAPI, CreateWindowExA, DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName,
@@ -77,6 +78,9 @@ private:
 	HWND hWndFF13 = 0;
 
 	std::mutex fix_mutex;
+
+	//MainContext is global!
+	//TODO this class is cluttered, separate fixes class from MainContext
 
 	const float MAX_FRAME_RATE_LIMIT = 250000.0F;
 	float** ff13_frame_pacer_ptr = NULL;
