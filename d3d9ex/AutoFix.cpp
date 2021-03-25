@@ -301,6 +301,7 @@ void MainContext::FF13_HandleLargeAddressAwarePatch() {
 void MainContext::ForceWindowActivate(const HWND hWnd) {
 	PostMessage(hWnd, WM_ACTIVATE, WA_INACTIVE, NULL);
 	PostMessage(hWnd, WM_ACTIVATE, WA_CLICKACTIVE, NULL);
+	SetForegroundWindow(hWnd);
 }
 
 void MainContext::FF13_OneTimeFixes() {
