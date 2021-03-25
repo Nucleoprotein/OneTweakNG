@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "Logger.h"
 #include "MemPatch.h"
 
 #include "Context.h"
@@ -9,12 +8,13 @@
 void MainContext::EnableAutoFix()
 {
 	std::string exe_name = ModuleNameA(NULL);
-	std::transform(exe_name.begin(), exe_name.end(), exe_name.begin(), std::tolower);
+	//workaround for template deduction after including <locale>
+	std::transform(exe_name.begin(), exe_name.end(), exe_name.begin(), [&](int i) { return std::tolower(i); });
 
 	if (exe_name == "ffxiiiimg.exe")
 	{
 		autofix = AutoFixes::FINAL_FANTASY_XIII;
-		PrintLog("AutoFix for \"Final Fantasy XIII\" enabled");
+		spdlog::info("AutoFix for \"Final Fantasy XIII\" enabled");
 		FF13_InitializeGameAddresses();
 		FF13_HandleLargeAddressAwarePatch();
 	}
@@ -22,7 +22,7 @@ void MainContext::EnableAutoFix()
 	if (exe_name == "ffxiii2img.exe")
 	{
 		autofix = AutoFixes::FINAL_FANTASY_XIII2;
-		PrintLog("AutoFix for \"Final Fantasy XIII-2\" enabled");
+		spdlog::info("AutoFix for \"Final Fantasy XIII-2\" enabled");
 		FF13_2_InitializeGameAddresses();
 		FF13_2_CreateSetFrameRateCodeBlock();
 	}
@@ -43,7 +43,7 @@ const std::map<const MainContext::AutoFixes, const uint32_t> MainContext::behavi
 HANDLE WINAPI MainContext::HookCreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
 	const char* ffxiiiimgPrt = strstr(lpFileName, "ffxiiiimg.exe");
 	if (ffxiiiimgPrt) {
-		PrintLog("HookCreateFileA Before Replacement: %s", lpFileName);
+		spdlog::info("HookCreateFileA Before Replacement: {}", lpFileName);
 
 		int arrayPosition = ffxiiiimgPrt - lpFileName;
 		int len = strlen(lpFileName);
@@ -52,17 +52,17 @@ HANDLE WINAPI MainContext::HookCreateFileA(LPCSTR lpFileName, DWORD dwDesiredAcc
 		const char* untouched = "untouched"; // needs to have the size of "ffxiiiimg"
 
 		memcpy(newFileName + arrayPosition, untouched, strlen(untouched));
-		PrintLog("HookCreateFileA After Replacement: %s", newFileName);
+		spdlog::info("HookCreateFileA After Replacement: {}", newFileName);
 		MH_STATUS disableHookCreateFileA = MH_DisableHook(CreateFileA);
-		PrintLog("disableHookCreateFileA = %d", disableHookCreateFileA);
+		spdlog::info("disableHookCreateFileA = {}", disableHookCreateFileA);
 		MH_STATUS disableHookCreateFileW = MH_DisableHook(CreateFileW);
-		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
+		spdlog::info("disableHookCreateFileW = {}", disableHookCreateFileW);
 		if (GetFileAttributesA(newFileName) == INVALID_FILE_ATTRIBUTES) {
-			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist? Using the regular ffxiiiimg.exe", newFileName);
+			spdlog::info("ERROR: Unable to get attributes of {}. Does the file exist? Using the regular ffxiiiimg.exe", newFileName);
 			strcpy_s(newFileName, len + 1, lpFileName);
 		}
 		HANDLE fileHandle = context.TrueCreateFileA(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
-		PrintLog("Returning File Handle for %s", newFileName);
+		spdlog::info("Returning File Handle for {}", newFileName);
 		delete[] newFileName;
 		return fileHandle;
 	}
@@ -75,7 +75,7 @@ HANDLE WINAPI MainContext::HookCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAc
 	const wchar_t* ffxiiiimgPrt = wcsstr(lpFileName, L"ffxiiiimg.exe");;
 
 	if (ffxiiiimgPrt) {
-		PrintLog("HookCreateFileW Before Replacement: %s", lpFileName);
+		spdlog::info(L"HookCreateFileW Before Replacement: {}", lpFileName);
 
 		int arrayPosition = ffxiiiimgPrt - lpFileName;
 		int len = wcslen(lpFileName);
@@ -83,17 +83,17 @@ HANDLE WINAPI MainContext::HookCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAc
 		wcscpy_s(newFileName, len + 1, lpFileName);
 		const wchar_t* untouched = L"untouched"; //needs to have the size of L"ffxiiiimg"
 		wmemcpy(newFileName + arrayPosition, untouched, wcslen(untouched));
-		PrintLog("HookCreateFileW After Replacement: %s", newFileName);
+		spdlog::info(L"HookCreateFileW After Replacement: {}", newFileName);
 		MH_STATUS disableHookCreateFileA = MH_DisableHook(CreateFileA);
-		PrintLog("disableHookCreateFileA = %d", disableHookCreateFileA);
+		spdlog::info("disableHookCreateFileA = {}", disableHookCreateFileA);
 		MH_STATUS disableHookCreateFileW = MH_DisableHook(CreateFileW);
-		PrintLog("disableHookCreateFileW = %d", disableHookCreateFileW);
+		spdlog::info("disableHookCreateFileW = {}", disableHookCreateFileW);
 		if (GetFileAttributesW(newFileName) == INVALID_FILE_ATTRIBUTES) {
-			PrintLog("ERROR: Unable to get attributes of %s. Does the file exist?", newFileName);
+			spdlog::info(L"ERROR: Unable to get attributes of {}. Does the file exist?", newFileName);
 			wcscpy_s(newFileName, len + 1, lpFileName);
 		}
 		HANDLE fileHandle = context.TrueCreateFileW(newFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);;
-		PrintLog("Returning File Handle %s", newFileName);
+		spdlog::info(L"Returning File Handle {}", newFileName);
 		delete[] newFileName;
 		return fileHandle;
 	}
@@ -223,15 +223,15 @@ void MainContext::Fix_Thread()
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 	auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double, std::milli> elapsed = end - start;
-	PrintLog("Waited %f ms", elapsed.count());
+	spdlog::info("Waited {} ms", elapsed.count());
 
 	std::lock_guard<std::mutex> lock(context.fix_mutex);
 	if (context.autofix == AutoFixes::FINAL_FANTASY_XIII) {
-		PrintLog("Starting FFXIII one time RAM patches.");
+		spdlog::info("Starting FFXIII one time RAM patches.");
 		context.FF13_OneTimeFixes();
 	}
 	else if (context.autofix == AutoFixes::FINAL_FANTASY_XIII2) {
-		PrintLog("Starting FFXIII-2 one time RAM patches.");
+		spdlog::info("Starting FFXIII-2 one time RAM patches.");
 		context.FF13_2_OneTimeFixes();
 	}
 	MessageBeep(MB_ICONASTERISK);
@@ -241,7 +241,7 @@ void MainContext::FF13_InitializeGameAddresses()
 {
 	// FF13 always seem to use the same addresses (even if you force ASLR on the OS), but we are calculating the addresses just in case...
 	uint8_t* baseAddr = (uint8_t*)GetModuleHandle(NULL); // Should be 400000
-	PrintLog("Base Addr = %x", baseAddr);
+	spdlog::info("Base Addr = {}", (void*)baseAddr);
 
 	ff13_frame_pacer_ptr = (float**)(baseAddr + 0x243E34C);
 	ff13_set_framerate_ingame_instruction_address = baseAddr + 0xA8D65F;
@@ -270,30 +270,30 @@ void MainContext::FF13_InitializeGameAddresses()
 void MainContext::FF13_HandleLargeAddressAwarePatch() {
 	const uint8_t laaMask = 0x20;
 	if (*ff13_exe_large_address_aware_flag_address & laaMask) {
-		PrintLog("LargeAddressAwarePatch found. ff13_exe_large_address_aware_flag = 0x%02x; ff13_exe_checksum = 0x%08x", *ff13_exe_large_address_aware_flag_address, *ff13_exe_checksum_address);
+		spdlog::info("LargeAddressAwarePatch found. ff13_exe_large_address_aware_flag = {:X}; ff13_exe_checksum = {:X}", *ff13_exe_large_address_aware_flag_address, *ff13_exe_checksum_address);
 
 		const MH_STATUS createHookCreateFileA = MH_CreateHook(CreateFileA, HookCreateFileA, reinterpret_cast<void**>(&TrueCreateFileA));
-		PrintLog("createHookCreateFileA = %d", createHookCreateFileA);
+		spdlog::info("createHookCreateFileA = {}", createHookCreateFileA);
 		const MH_STATUS enableHookCreateFileA = MH_EnableHook(CreateFileA);
-		PrintLog("enableHookCreateFileA = %d", enableHookCreateFileA);
+		spdlog::info("enableHookCreateFileA = {}", enableHookCreateFileA);
 
 		const MH_STATUS createHookCreateFileW = MH_CreateHook(CreateFileW, HookCreateFileW, reinterpret_cast<void**>(&TrueCreateFileW));
-		PrintLog("createHookCreateFileW = %d", createHookCreateFileW);
+		spdlog::info("createHookCreateFileW = {}", createHookCreateFileW);
 		const MH_STATUS enableHookCreateFileW = MH_EnableHook(CreateFileW);
-		PrintLog("enableHookCreateFileW = %d", enableHookCreateFileW);
+		spdlog::info("enableHookCreateFileW = {}", enableHookCreateFileW);
 
 		uint8_t new_ff13_exe_large_address_aware_flag = *ff13_exe_large_address_aware_flag_address & ~laaMask;
 		MemPatch::Patch(ff13_exe_large_address_aware_flag_address, &new_ff13_exe_large_address_aware_flag, 1);
-		PrintLog("LargeAddressAware patched back. ff13_exe_large_address_aware_flag = 0x%02x;", *ff13_exe_large_address_aware_flag_address);
+		spdlog::info("LargeAddressAware patched back. ff13_exe_large_address_aware_flag = {:X};", *ff13_exe_large_address_aware_flag_address);
 
 		uint32_t new_ff13_exe_checksum = 0;
 		MemPatch::Patch(ff13_exe_checksum_address, &new_ff13_exe_checksum, sizeof(uint32_t));
-		PrintLog("Checksum patched back. ff13_exe_checksum = 0x%08x", *ff13_exe_checksum_address);
+		spdlog::info("Checksum patched back. ff13_exe_checksum = {:X}", *ff13_exe_checksum_address);
 
-		PrintLog("LargeAddressAwarePatch handled");
+		spdlog::info("LargeAddressAwarePatch handled");
 	}
 	else {
-		PrintLog("LargeAddressAwarePatch not found.");
+		spdlog::info("LargeAddressAwarePatch not found.");
 	}
 	
 }
@@ -319,12 +319,12 @@ void MainContext::FF13_OneTimeFixes() {
 	FF13_SetFrameRateVariables();
 	AdjustVertexData(*ff13_internal_res_w, *ff13_internal_res_h);
 
-	PrintLog("Finished FF13 One Time Fixes");
+	spdlog::info("Finished FF13 One Time Fixes");
 }
 
 void MainContext::FF13_PatchMessageBox()
 {
-	PrintLog("Removing 'Quit game' textbox");
+	spdlog::info("Removing 'Quit game' textbox");
 
 	MemPatch::Nop(ff13_message_box_stack_push_address, 1);
 	MemPatch::Nop(ff13_message_box_stack_push_address + 1 * 4, 1);
@@ -336,14 +336,14 @@ void MainContext::FF13_PatchMessageBox()
 void MainContext::FF13_EnableControllerVibration()
 {
 	if (!config.GetFFXIIIEnableControllerVibration()) {
-		PrintLog("Vibration should not be enabled (config file)");
+		spdlog::info("Vibration should not be enabled (config file)");
 		return;
 	}
 	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
-		PrintLog("Vibration disabled because FFXIIIDisableIngameControllerHotSwapping is set to false (config file)");
+		spdlog::info("Vibration disabled because FFXIIIDisableIngameControllerHotSwapping is set to false (config file)");
 		return;
 	}
-	PrintLog("Enabling controller vibration...");
+	spdlog::info("Enabling controller vibration...");
 	MemPatch::Nop(ff13_vibration_low_set_zero_address, 5);
 	MemPatch::Nop(ff13_vibration_high_set_zero_address, 5);
 
@@ -353,19 +353,19 @@ void MainContext::FF13_EnableControllerVibration()
 void MainContext::FF13_RemoveContinuousControllerScan()
 {
 	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
-		PrintLog("Continuous controller scanning not disabled (config)");
+		spdlog::info("Continuous controller scanning not disabled (config)");
 		return;
 	}
 	// Disable continuous controller scanning.
 
-	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
+	spdlog::info("Removing game slow and synchronous controller continuous controller scanning...");
 	// change a jne to jmp
 	MemPatch::Fill(ff13_continuous_scan_instruction_address, 0xEB, 1);
 }
 
 void MainContext::FF13_FixScissorRect()
 {
-	PrintLog("Fixing ScissorRect...");
+	spdlog::info("Fixing ScissorRect...");
 	const float originalWidth = 1280.0F;
 	const float resolutionFactorW = (float)*ff13_internal_res_w / originalWidth;
 	scissor_scaling_factor_w = resolutionFactorW;
@@ -390,7 +390,7 @@ void MainContext::FF13_FixScissorRect()
 
 void MainContext::FF13_NOPIngameFrameRateLimitSetter()
 {
-	PrintLog("NOPing the in-game instruction that sets the frame rate.");
+	spdlog::info("NOPing the in-game instruction that sets the frame rate.");
 	MemPatch::Nop(ff13_set_framerate_ingame_instruction_address, 5);
 }
 
@@ -398,11 +398,11 @@ void MainContext::FF13_SetFrameRateVariables()
 {
 	float* framePacerTargetPtr = *ff13_frame_pacer_ptr;
 	if (framePacerTargetPtr) {
-		PrintLog("Frame pacer target frame rate is at address %x", framePacerTargetPtr);
+		spdlog::info("Frame pacer target frame rate is at address {}", (void*)framePacerTargetPtr);
 
 		float* ingameFrameRateFramePacerTarget = framePacerTargetPtr;
 		*ingameFrameRateFramePacerTarget = MAX_FRAME_RATE_LIMIT;
-		PrintLog("Frame pacer disabled.");
+		spdlog::info("Frame pacer disabled.");
 
 		if (config.GetFFXIIIIngameFrameRateLimit() != 0)
 		{
@@ -418,11 +418,10 @@ void MainContext::FF13_SetFrameRateVariables()
 
 			float* ingameFrameRateLimitPtr = framePacerTargetPtr + 1;
 			*ingameFrameRateLimitPtr = frameRateLimit;
-			PrintLog("Target frame rate set to %f", frameRateLimit);
-		}
+			spdlog::info("Target frame rate set to {}", frameRateLimit);		}
 	}
 	else {
-		PrintLog("Unable to find frame pacer / frame rate address. This shouldn't happen! Report this.");
+		spdlog::info("Unable to find frame pacer / frame rate address. This shouldn't happen! Report this.");
 	}
 }
 
@@ -435,22 +434,22 @@ void MainContext::FF13_2_OneTimeFixes()
 
 	if (*ff13_2_frame_pacer_ptr_address) {
 		**ff13_2_frame_pacer_ptr_address = MAX_FRAME_RATE_LIMIT;
-		PrintLog("Frame pacer disabled");
+		spdlog::info("Frame pacer disabled");
 
 		FF13_2_AddHookIngameFrameRateLimitSetter();
 		FF13_2_RemoveContinuousControllerScan();
 		FF13_2_EnableControllerVibration();
 		AdjustVertexData(*ff13_2_internal_res_w, *ff13_2_internal_res_h);
-		PrintLog("Finished FF13-2 One Time Fixes");
+		spdlog::info("Finished FF13-2 One Time Fixes");
 	}
 	else {
-		PrintLog("Unable to apply FF13-2 One Time Fixes. Report this!");
+		spdlog::info("Unable to apply FF13-2 One Time Fixes. Report this!");
 	}
 }
 
 void MainContext::FF13_2_PatchMessageBox()
 {
-	PrintLog("Removing 'Quit game' textbox");
+	spdlog::info("Removing 'Quit game' textbox");
 
 	// NOP push of registers to call MessageBox
 	MemPatch::Nop(ff13_2_message_box_stack_push_address, 5);
@@ -475,10 +474,10 @@ void MainContext::PatchMessageBoxCall(uint8_t* callInstructionAddress)
 void MainContext::FF13_2_EnableControllerVibration()
 {
 	if (!config.GetFFXIIIEnableControllerVibration()) {
-		PrintLog("Vibration should not be enabled (config file)");
+		spdlog::info("Vibration should not be enabled (config file)");
 		return;
 	}
-	PrintLog("Enabling controller vibration...");
+	spdlog::info("Enabling controller vibration...");
 
 	MemPatch::Nop(ff13_2_vibration_low_set_zero_address, 5);
 	MemPatch::Nop(ff13_2_vibration_high_set_zero_address, 5);
@@ -501,7 +500,7 @@ void MainContext::FF13_2_InitializeGameAddresses()
 {
 	// FF13-2 uses address space layout randomization (ASLR) so we can't rely on fixed addresses without considering the base address
 	uint8_t* baseAddr = (uint8_t*)GetModuleHandle(NULL);
-	PrintLog("Base Addr = %x", baseAddr);
+	spdlog::info("Base Addr = {}", (void*)baseAddr);
 
 	ff13_2_continuous_scan_instruction_address = baseAddr + 0x2A6E7F;
 	ff13_2_set_frame_rate_address = baseAddr + 0x802616;
@@ -518,12 +517,12 @@ void MainContext::FF13_2_InitializeGameAddresses()
 void MainContext::FF13_2_RemoveContinuousControllerScan()
 {
 	if (!config.GetFFXIIIDisableIngameControllerHotSwapping()) {
-		PrintLog("Continuous controller scanning not disabled (config)");
+		spdlog::info("Continuous controller scanning not disabled (config)");
 		return;
 	}
 	// Disable continuous controller scanning.
 
-	PrintLog("Removing game slow and synchronous controller continuous controller scanning...");
+	spdlog::info("Removing game slow and synchronous controller continuous controller scanning...");
 	// change a jne to jmp
 	MemPatch::Fill(ff13_2_continuous_scan_instruction_address, 0xEB, 1);
 }
@@ -531,11 +530,11 @@ void MainContext::FF13_2_RemoveContinuousControllerScan()
 void MainContext::FF13_2_AddHookIngameFrameRateLimitSetter()
 {
 	if (config.GetFFXIIIIngameFrameRateLimit() == 0) {
-		PrintLog("Frame rate should not be changed (config = 0)");
+		spdlog::info("Frame rate should not be changed (config = 0)");
 		return;
 	}
 
-	PrintLog("Hooking the instruction that sets the frame rate...");
+	spdlog::info("Hooking the instruction that sets the frame rate...");
 
 	MemPatch::CUnprotect unp(ff13_2_set_frame_rate_address, 5);
 
@@ -549,7 +548,7 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 	const int blockSize = 31;
 	FF13_2_SET_FRAME_RATE_INJECTED_CODE = new(std::nothrow) uint8_t[blockSize];
 	if (!FF13_2_SET_FRAME_RATE_INJECTED_CODE) {
-		PrintLog("Failed to initialize FFXIII-2 code block");
+		spdlog::info("Failed to initialize FFXIII-2 code block");
 		return;
 	}
 	DWORD oldProtect;
@@ -566,7 +565,7 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 			ff13_2_targetFrameRate = (float)std::min(frameRateConfig, (s32)FF13_2_MAX_FRAME_CAP);
 		}
 
-		PrintLog("Target frame rate set to %f", ff13_2_targetFrameRate);
+		spdlog::info("Target frame rate set to {}", ff13_2_targetFrameRate);
 	}
 
 	// movss xmm1,[&FF13_2_30_FPS]
@@ -606,5 +605,5 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.6.4 https://github.com/rebtd7/FF13Fix");
+	spdlog::info("FF13Fix 1.6.5 https://github.com/rebtd7/FF13Fix");
 }

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "comdef.h"
+#include <comdef.h>
 #include <d3d9.h>
+
+#include "StringUtil.h"
 
 template <class T>
 class WrapperBase 
@@ -17,7 +19,7 @@ public:
 		if (m_module)
 		{
 			FreeLibrary(m_module);
-			PrintLog("Unloaded %s", module_path.c_str());
+			spdlog::info("Unloaded {}", module_path);
 		}
 	}
 
@@ -34,16 +36,16 @@ protected:
 		m_module = LoadLibraryA(module_path.c_str());
 
 		if (m_module) {
-			PrintLog("Loaded %s", module_path.c_str());
+			spdlog::info("Loaded {}", module_path);
 			return true;
 		}
 		else if(fail_is_critical) {
 			HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
 			_com_error err(hr);
 
-			std::string msg = StringFromFormat("Cannot load %s\nHRESULT 0x%08X: \"%s\"", module_path.c_str(), err.Error(), err.ErrorMessage());
+			std::string msg = StringFromFormat("Cannot load %s\nHRESULT 0x{:X} \"{}\"", module_path.c_str(), err.Error(), err.ErrorMessage());
 
-			PrintLog(msg.c_str());
+			spdlog::critical(msg);
 			MessageBoxA(NULL, msg.c_str(), "Error", MB_ICONERROR);
 			ExitProcess(hr);
 		}
