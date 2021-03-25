@@ -605,5 +605,5 @@ void MainContext::FF13_2_CreateSetFrameRateCodeBlock()
 }
 
 void MainContext::PrintVersionInfo() {
-	PrintLog("FF13Fix 1.6.3 https://github.com/rebtd7/FF13Fix");
+	PrintLog("FF13Fix 1.6.4 https://github.com/rebtd7/FF13Fix");
 }
