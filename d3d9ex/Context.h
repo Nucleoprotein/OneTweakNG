@@ -3,11 +3,16 @@
 #include <atomic>
 #include <d3d9.h>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
+#include "WinUtil.h"
+
 #include "Types.h"
 #include "XInputManager.h"
 
 static const char* inifilename = "FF13Fix.ini";
-#define CONFIG_VERSION 6
+#define CONFIG_VERSION 7
 
 class Config
 {
@@ -61,6 +66,7 @@ public:
 	void ApplyBorderless(HWND hWnd);
 
 	Config config;
+
 	void OneTimeFix();
 	bool IsDXVK();
 

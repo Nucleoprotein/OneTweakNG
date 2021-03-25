@@ -1,7 +1,7 @@
 #define CINTERFACE
 #include <d3d9.h>
 
-#include "Logger.h"
+#include "spdlog/spdlog.h"
 #include "MinHook.h"
 
 namespace cinterface
@@ -10,7 +10,7 @@ namespace cinterface
 
 	HRESULT STDMETHODCALLTYPE HookLock(IDirect3DVertexBuffer9* This, UINT OffsetToLock, UINT SizeToLock, void** ppbData, DWORD Flags)
 	{
-		//PrintLog(__FUNCTION__" %u", SizeToLock);
+		spdlog::trace(__FUNCTION__" {}", SizeToLock);
 		if (SizeToLock == 358400)
 			Flags = D3DLOCK_DISCARD;
 		return TrueLock(This, OffsetToLock, SizeToLock, ppbData, Flags);
@@ -20,11 +20,11 @@ namespace cinterface
 	{
 		if (pVertexBuffer->lpVtbl->Lock && TrueLock == nullptr)
 		{
-			PrintLog("WARNING: Experimental DiscardUIVertexBuffer enabled!");
+			spdlog::warn("Experimental DiscardUIVertexBuffer enabled!");
 			const MH_STATUS createHookLock = MH_CreateHook(pVertexBuffer->lpVtbl->Lock, HookLock, reinterpret_cast<void**>(&TrueLock));
-			PrintLog("CreateHookLock = %d", createHookLock);
+			spdlog::info("CreateHookLock = {}", createHookLock);
 			const MH_STATUS enableHookLock = MH_EnableHook(pVertexBuffer->lpVtbl->Lock);
-			PrintLog("EnableHookLock = %d", enableHookLock);
+			spdlog::info("EnableHookLock = {}", enableHookLock);
 		}
 	}
 }

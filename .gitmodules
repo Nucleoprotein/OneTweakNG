@@ -1,3 +1,7 @@
-[submodule "MinHook"]
-	path = MinHook
+[submodule "Deps/MinHook"]
+	path = Deps/MinHook
 	url = https://github.com/TsudaKageyu/minhook.git
+[submodule "Deps/spdlog"]
+	path = Deps/spdlog
+	url = https://github.com/gabime/spdlog.git
+	branch = v1.8.3

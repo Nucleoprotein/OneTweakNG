@@ -4,14 +4,14 @@ SETTING(s32, LongValue, PresentationInterval, Options, 0,
 	L"# PresentationInterval (V-Sync)\n"
 	L"#\n"
 	L"# -1 = V-Sync forced off\n"
-	L"#  0 = V-Sync not changed\n"
+	L"#  0 = V-Sync not changed (default)\n"
 	L"#  1 = V-Sync forced on"
 );
 
 SETTING(s32, LongValue, TripleBuffering, Options, -1, 
 	L"# TripleBuffering\n"
 	L"#\n"
-	L"# -1 = Auto (Disabled for dxvk.dll; else, enabled)\n"
+	L"# -1 = Auto (Disabled for dxvk.dll; else, enabled) (default)\n"
 	L"#  0 = Off\n"
 	L"#  1 = On"
 );
@@ -87,5 +87,15 @@ SETTING(bool, BoolValue, Borderless, Borderless, false, 0);
 SETTING(bool, BoolValue, ForceWindowedMode, Borderless, false, 0);
 SETTING(bool, BoolValue, AllWindows, Borderless, false, 0);
 
+SETTING(s32, LongValue, LogLevel, Log, 2,
+	L"# LogLevel\n"
+	L"#\n"
+	L"#  0 = trace\n"
+	L"#  1 = debug\n"
+	L"#  2 = info (default)\n"
+	L"#  3 = warning\n"
+	L"#  4 = error\n"
+	L"#  5 = critical"
+);
 
 #endif
