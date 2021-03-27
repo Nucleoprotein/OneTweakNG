@@ -3,23 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OneTweakNG", "d3d9ex\d3d9ex.vcxproj", "{6C397640-B1A0-4DEF-8657-0EB21DC2FEA5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OneTweakNG", "src\d3d9ex\d3d9ex.vcxproj", "{6C397640-B1A0-4DEF-8657-0EB21DC2FEA5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{5DB3A8C9-CF87-4AB6-A7C2-07B81A0DA625}"
 	ProjectSection(SolutionItems) = preProject
-		Common\Defines.h = Common\Defines.h
-		Common\MemPatch.h = Common\MemPatch.h
-		Common\SimpleIni.h = Common\SimpleIni.h
-		Common\StringUtil.h = Common\StringUtil.h
-		Common\Timer.h = Common\Timer.h
-		Common\Types.h = Common\Types.h
-		Common\WinUtil.h = Common\WinUtil.h
-		Common\WinVer.h = Common\WinVer.h
+		src\Common\Defines.h = src\Common\Defines.h
+		src\Common\MemPatch.h = src\Common\MemPatch.h
+		src\Common\SimpleIni.h = src\Common\SimpleIni.h
+		src\Common\StringUtil.h = src\Common\StringUtil.h
+		src\Common\Timer.h = src\Common\Timer.h
+		src\Common\Types.h = src\Common\Types.h
+		src\Common\WinUtil.h = src\Common\WinUtil.h
+		src\Common\WinVer.h = src\Common\WinVer.h
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deps", "Deps", "{908757C5-6B19-44A6-9C35-1F913D016F6F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "deps", "deps", "{908757C5-6B19-44A6-9C35-1F913D016F6F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libMinHook", "Deps\MinHook\build\VC16\libMinHook.vcxproj", "{F142A341-5EE0-442D-A15F-98AE9B48DBAE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libMinHook", "deps\MinHook\build\VC16\libMinHook.vcxproj", "{F142A341-5EE0-442D-A15F-98AE9B48DBAE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scmversion", "src\scmversion\scmversion.vcxproj", "{075CED82-6A20-46DF-94C7-9624AC9DDBEB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,12 +47,23 @@ Global
 		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|Win32.Build.0 = Release|Win32
 		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x64.ActiveCfg = Release|x64
 		{F142A341-5EE0-442D-A15F-98AE9B48DBAE}.Release|x64.Build.0 = Release|x64
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Debug|Win32.Build.0 = Debug|Win32
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Debug|x64.ActiveCfg = Debug|x64
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Debug|x64.Build.0 = Debug|x64
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Release|Win32.ActiveCfg = Release|Win32
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Release|Win32.Build.0 = Release|Win32
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Release|x64.ActiveCfg = Release|x64
+		{075CED82-6A20-46DF-94C7-9624AC9DDBEB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F142A341-5EE0-442D-A15F-98AE9B48DBAE} = {908757C5-6B19-44A6-9C35-1F913D016F6F}
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		VisualSVNWorkingCopyRoot = .
 		SolutionGuid = {CC332D21-3B2D-4534-AD8E-2525081AECA5}
+		VisualSVNWorkingCopyRoot = .
 	EndGlobalSection
 EndGlobal

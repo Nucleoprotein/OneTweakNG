@@ -10,6 +10,7 @@
 
 #include "Types.h"
 #include "XInputManager.h"
+#include "scmversion.h"
 
 static const char* inifilename = "FF13Fix.ini";
 #define CONFIG_VERSION 7

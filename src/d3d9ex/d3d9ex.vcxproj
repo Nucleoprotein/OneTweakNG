@@ -74,7 +74,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>d3d9</TargetName>
-    <IncludePath>$(SolutionDir)\Common;$(SolutionDir)\Deps\MinHook\include;$(SolutionDir)\Deps\spdlog\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)src\Common;$(SolutionDir)src\scmversion;$(SolutionDir)deps\MinHook\include;$(SolutionDir)deps\spdlog\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -84,7 +84,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>d3d9</TargetName>
-    <IncludePath>$(SolutionDir)\Common;$(SolutionDir)\Deps\MinHook\include;$(SolutionDir)\Deps\spdlog\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)src\Common;$(SolutionDir)src\scmversion;$(SolutionDir)deps\MinHook\include;$(SolutionDir)deps\spdlog\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -167,9 +167,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Context.h" />
     <ClInclude Include="Wrapper.h" />
     <ClInclude Include="IDirect3D9.h" />
@@ -214,8 +211,11 @@
     <None Include="exports.def" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Deps\MinHook\build\VC16\libMinHook.vcxproj">
+    <ProjectReference Include="..\..\deps\MinHook\build\VC16\libMinHook.vcxproj">
       <Project>{f142a341-5ee0-442d-a15f-98ae9b48dbae}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\scmversion\scmversion.vcxproj">
+      <Project>{075ced82-6a20-46df-94c7-9624ac9ddbeb}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
