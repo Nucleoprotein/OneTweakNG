@@ -44,6 +44,7 @@ This considerably improves the frame rate when 2D elements are being disabled on
 The game calls [SetScissorRect](https://docs.microsoft.com/en-us/windows/win32/api/d3d9helper/nf-d3d9helper-idirect3ddevice9-setscissorrect) using a rectangle hardcoded with the 720p coordenates. This correct the coordenates and rectangle size in order to fix it.
 
 # Usage with DXVK
+People use DXVK on Windows to work around crashes with recent AMD Navi cards. If you are using Nvidia on Windows, you probably don't need it.
 * Rename DXVK's x86 ```d3d9.dll``` file to ```dxvk.dll```. Keep FF13Fix as ```d3d9.dll```.
 
 
