@@ -3,9 +3,6 @@
 #include <thread>
 #include <array>
 
-
-#include "Logger.h"
-
 #include "MinHook.h"
 #include "SimpleIni.h"
 
@@ -48,42 +45,53 @@ Config::Config()
 
 MainContext::MainContext()
 {
-	LogFile("FF13Fix.log");
+	std::string logfilename = FullPathFromPath("FF13Fix.log");
+	auto file_logger = spdlog::basic_logger_mt("file_logger", logfilename, true);
+	spdlog::set_default_logger(file_logger);
+
+	//[2014-10-31 23:46:59.678] [thread] [level] Some message
+	spdlog::set_pattern("[%Y-%m-%d %T.%e] [%6t] [%l] %v");
+	spdlog::set_level(static_cast<spdlog::level::level_enum>(config.GetLogLogLevel()));
+	spdlog::flush_on(spdlog::level::err); // trigger flush whenever errors or more severe messages are logged
+
+	if(config.GetLogLogFlush())
+		spdlog::flush_on(spdlog::level::trace); // trigger flush whenever trace or more severe messages are logged => always
+
 	context.PrintVersionInfo();
 
-	PrintLog("Enabling hooks:");
+	spdlog::info("Enabling hooks:");
 	const MH_STATUS initializeHooks = MH_Initialize();
-	PrintLog("initializeHooks = %d", initializeHooks);
+	spdlog::info("initializeHooks = {}", initializeHooks);
 
 	const MH_STATUS createHookDirect3DCreate9 = MH_CreateHook(D3D9DLL::Get().Direct3DCreate9, HookDirect3DCreate9, reinterpret_cast<void**>(&TrueDirect3DCreate9));
-	PrintLog("createHookDirect3DCreate9 = %d", createHookDirect3DCreate9);
+	spdlog::info("createHookDirect3DCreate9 = {}", createHookDirect3DCreate9);
 	const MH_STATUS enableHookDirect3DCreate9 = MH_EnableHook(D3D9DLL::Get().Direct3DCreate9);
-	PrintLog("enableHookDirect3DCreate9 = %d", enableHookDirect3DCreate9);
+	spdlog::info("enableHookDirect3DCreate9 = {}", enableHookDirect3DCreate9);
 
 	const MH_STATUS createHookDirect3DCreate9Ex = MH_CreateHook(D3D9DLL::Get().Direct3DCreate9Ex, HookDirect3DCreate9Ex, reinterpret_cast<void**>(&TrueDirect3DCreate9Ex));
-	PrintLog("createHookDirect3DCreate9Ex = %d", createHookDirect3DCreate9Ex);
+	spdlog::info("createHookDirect3DCreate9Ex = {}", createHookDirect3DCreate9Ex);
 	const MH_STATUS enableHookDirect3DCreate9Ex = MH_EnableHook(D3D9DLL::Get().Direct3DCreate9Ex);
-	PrintLog("enableHookDirect3DCreate9Ex = %d", enableHookDirect3DCreate9Ex);
+	spdlog::info("enableHookDirect3DCreate9Ex = {}", enableHookDirect3DCreate9Ex);
 
 	const MH_STATUS createHookCreateWindowExA = MH_CreateHook(CreateWindowExA, HookCreateWindowExA, reinterpret_cast<void**>(&TrueCreateWindowExA));
-	PrintLog("createHookCreateWindowExA = %d", createHookCreateWindowExA);
+	spdlog::info("createHookCreateWindowExA = {}", createHookCreateWindowExA);
 	const MH_STATUS enableHookCreateWindowExA = MH_EnableHook(CreateWindowExA);
-	PrintLog("enableHookCreateWindowExA = %d", enableHookCreateWindowExA);
+	spdlog::info("enableHookCreateWindowExA = {}", enableHookCreateWindowExA);
 
 	const MH_STATUS createHookCreateWindowExW = MH_CreateHook(CreateWindowExW, HookCreateWindowExW, reinterpret_cast<void**>(&TrueCreateWindowExW));
-	PrintLog("createHookCreateWindowExW = %d", createHookCreateWindowExW);
+	spdlog::info("createHookCreateWindowExW = {}", createHookCreateWindowExW);
 	const MH_STATUS enableHookCreateWindowExW = MH_EnableHook(CreateWindowExW);
-	PrintLog("enableHookCreateWindowExW = %d", enableHookCreateWindowExW);
+	spdlog::info("enableHookCreateWindowExW = {}", enableHookCreateWindowExW);
 
 	const MH_STATUS createHookSetWindowLongA = MH_CreateHook(SetWindowLongA, HookSetWindowLongA, reinterpret_cast<void**>(&TrueSetWindowLongA));
-	PrintLog("createHookSetWindowLongA = %d", createHookSetWindowLongA);
+	spdlog::info("createHookSetWindowLongA = {}", createHookSetWindowLongA);
 	const MH_STATUS enableHookSetWindowLongA = MH_EnableHook(SetWindowLongA);
-	PrintLog("enableHookSetWindowLongA = %d", enableHookSetWindowLongA);
+	spdlog::info("enableHookSetWindowLongA = {}", enableHookSetWindowLongA);
 
 	const MH_STATUS createHookSetWindowLongW = MH_CreateHook(SetWindowLongW, HookSetWindowLongW, reinterpret_cast<void**>(&TrueSetWindowLongW));
-	PrintLog("createHookSetWindowLongW = %d", createHookSetWindowLongW);
+	spdlog::info("createHookSetWindowLongW = {}", createHookSetWindowLongW);
 	const MH_STATUS enableHookSetWindowLongW = MH_EnableHook(SetWindowLongW);
-	PrintLog("enableHookSetWindowLongW = %d", enableHookSetWindowLongW);
+	spdlog::info("enableHookSetWindowLongW = {}", enableHookSetWindowLongW);
 
 	if (config.GetOptionsAutoFix()) EnableAutoFix();
 }
@@ -95,7 +103,7 @@ MainContext::~MainContext()
 
 IDirect3D9* WINAPI MainContext::HookDirect3DCreate9(UINT SDKVersion)
 {
-	PrintLog(__FUNCTION__);
+	spdlog::info(__FUNCTION__);
 	IDirect3D9* d3d9 = context.TrueDirect3DCreate9(SDKVersion);
 	if (d3d9) {
 		return new hkIDirect3D9(static_cast<IDirect3D9Ex*>(d3d9));
@@ -106,7 +114,7 @@ IDirect3D9* WINAPI MainContext::HookDirect3DCreate9(UINT SDKVersion)
 
 HRESULT WINAPI MainContext::HookDirect3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppIDirect3D9Ex)
 {
-	PrintLog(__FUNCTION__);
+	spdlog::info(__FUNCTION__);
 	HRESULT hr = context.TrueDirect3DCreate9Ex(SDKVersion, ppIDirect3D9Ex);
 	if (SUCCEEDED(hr)) {
 		hkIDirect3D9* pIDirect3D9Ex = new hkIDirect3D9(*ppIDirect3D9Ex);
@@ -151,12 +159,12 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 		if (config.GetOptionsTripleBuffering() == 1 || (config.GetOptionsTripleBuffering() == -1 && !IsDXVK()))
 		{
 			pPresentationParameters->BackBufferCount = 3;
-			PrintLog("BackBufferCount: BackBufferCount set to %u", pPresentationParameters->BackBufferCount);
+			spdlog::info("BackBufferCount: BackBufferCount set to {}", pPresentationParameters->BackBufferCount);
 		}
 
 		if ((s32)config.GetOptionsFullScreenRefreshRate() >= 0 && pPresentationParameters->FullScreen_RefreshRateInHz != 0)
 		{
-			PrintLog("Changing refresh rate from %u to %u", pPresentationParameters->FullScreen_RefreshRateInHz, config.GetOptionsFullScreenRefreshRate());
+			spdlog::info("Changing refresh rate from {} to {}", pPresentationParameters->FullScreen_RefreshRateInHz, config.GetOptionsFullScreenRefreshRate());
 			pPresentationParameters->FullScreen_RefreshRateInHz = config.GetOptionsFullScreenRefreshRate();
 		}
 
@@ -166,7 +174,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 			pPresentationParameters->MultiSampleType = (D3DMULTISAMPLE_TYPE)config.GetOptionsMultisample();
 			pPresentationParameters->MultiSampleQuality = 0;
 
-			PrintLog("MultiSampleType %u, MultiSampleQuality %u", pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality);
+			spdlog::info("MultiSampleType {}, MultiSampleQuality {}", pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality);
 		}
 
 		if (config.GetOptionsPresentationInterval() != 0)
@@ -176,13 +184,13 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 			else if (config.GetOptionsPresentationInterval() > 0)
 				pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 
-			PrintLog("PresentationInterval: PresentationInterval set to 0x%x", pPresentationParameters->PresentationInterval);
+			spdlog::info("PresentationInterval: PresentationInterval set to {:X}", pPresentationParameters->PresentationInterval);
 		}
 
 		if (config.GetOptionsSwapEffect() != -1)
 		{
 			pPresentationParameters->SwapEffect = (D3DSWAPEFFECT)config.GetOptionsSwapEffect();
-			PrintLog("SwapEffect: SwapEffect set to %u", pPresentationParameters->SwapEffect);
+			spdlog::info("SwapEffect: SwapEffect set to {}", pPresentationParameters->SwapEffect);
 		}
 
 		if (config.GetBorderlessBorderless())
@@ -198,7 +206,7 @@ bool MainContext::ApplyPresentationParameters(D3DPRESENT_PARAMETERS* pPresentati
 				pPresentationParameters->Windowed = TRUE;
 				pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 
-				PrintLog("ForceWindowedMode");
+				spdlog::info("ForceWindowedMode");
 			}
 		}
 
@@ -217,7 +225,7 @@ bool MainContext::CheckWindow(HWND hWnd)
 	GetClassNameW(hWnd, className.get(), MAX_PATH);
 	GetWindowTextW(hWnd, windowName.get(), MAX_PATH);
 
-	PrintLog("HWND 0x%p: ClassName \"%ls\", WindowName: \"%ls\"", hWnd, className.get(), windowName.get());
+	spdlog::info(L"HWND {}: ClassName \"{}\", WindowName: \"{}\"", (void*)hWnd, className.get(), windowName.get());
 
 	bool class_found = config.GetWindowWindowClass().compare(className.get()) == 0;
 	bool window_found = config.GetWindowWindowName().compare(windowName.get()) == 0;
@@ -259,8 +267,8 @@ void MainContext::ApplyBorderless(HWND hWnd)
 		SetWindowPos(hWnd, insertAfter, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 		SetFocus(hWnd);
 
-		PrintLog("HWND 0x%p: Borderless dwStyle: %lX->%lX", hWnd, dwStyle, new_dwStyle);
-		PrintLog("HWND 0x%p: Borderless dwExStyle: %lX->%lX", hWnd, dwExStyle, new_dwExStyle);
+		spdlog::info("HWND {:X}: Borderless dwStyle: {:X}->{:X}", (void*)hWnd, dwStyle, new_dwStyle);
+		spdlog::info("HWND {:X}: Borderless dwExStyle: {:X}->{:X}", (void*)hWnd, dwExStyle, new_dwExStyle);
 	}
 }
 
@@ -305,13 +313,13 @@ LONG WINAPI MainContext::HookSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLon
 		if (nIndex == GWL_STYLE)
 		{
 			dwNewLong &= ~WS_OVERLAPPEDWINDOW;
-			PrintLog("SetWindowLongA dwStyle: %lX->%lX", olddwNewLong, dwNewLong);
+			spdlog::info("SetWindowLongA dwStyle: {:X}->{:X}", olddwNewLong, dwNewLong);
 		}
 
 		if (nIndex == GWL_EXSTYLE)
 		{
 			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW);
-			PrintLog("SetWindowLongA dwExStyle: %lX->%lX", olddwNewLong, dwNewLong);
+			spdlog::info("SetWindowLongA dwExStyle: {:X}->{:X}", olddwNewLong, dwNewLong);
 		}
 	}
 	return context.TrueSetWindowLongA(hWnd, nIndex, dwNewLong);
@@ -325,13 +333,13 @@ LONG WINAPI MainContext::HookSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLon
 		if (nIndex == GWL_STYLE)
 		{
 			dwNewLong &= ~WS_OVERLAPPEDWINDOW;
-			PrintLog("SetWindowLongW dwStyle: %lX->%lX", olddwNewLong, dwNewLong);
+			spdlog::info("SetWindowLongW dwStyle: {:X}->{:X}", olddwNewLong, dwNewLong);
 		}
 
 		if (nIndex == GWL_EXSTYLE)
 		{
 			dwNewLong &= ~(WS_EX_OVERLAPPEDWINDOW);
-			PrintLog("SetWindowLongW dwExStyle: %lX->%lX", olddwNewLong, dwNewLong);
+			spdlog::info("SetWindowLongW dwExStyle: {:X}->{:X}", olddwNewLong, dwNewLong);
 		}
 	}
 	return context.TrueSetWindowLongW(hWnd, nIndex, dwNewLong);
@@ -342,7 +350,7 @@ HWND WINAPI MainContext::HookCreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName
 	HWND hWnd = context.TrueCreateWindowExA(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 	if (!hWnd)
 	{
-		PrintLog("CreateWindowExA failed");
+		spdlog::info("CreateWindowExA failed");
 		return hWnd;
 	}
 
@@ -360,7 +368,7 @@ HWND WINAPI MainContext::HookCreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassNam
 	HWND hWnd = context.TrueCreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 	if (!hWnd)
 	{
-		PrintLog("CreateWindowExW failed");
+		spdlog::info("CreateWindowExW failed");
 		return hWnd;
 	}
 
