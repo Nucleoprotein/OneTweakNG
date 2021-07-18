@@ -53,6 +53,7 @@ You may wish to patch the games to allow them to access more than 2GB of RAM.
 This seems to avoid crashes in FF13-2 and FF13 (especially when using triple buffering, playing on 4K+ resolutions, using DXVK and/or Reshade, or using HD texture/model mods).
 ## FF13:
 * Create a copy of the unpatched ```ffxiiiimg.exe``` to the folder ```FINAL FANTASY XIII\white_data\prog\win\bin```. Name it ```untouched.exe```.
+  * This is **not** optional. **You must keep an unmodified executable named ```untouched.exe``` in your ```bin``` folder.**
 * Patch the original ```ffxiiiimg.exe``` (you can use https://ntcore.com/?page_id=371)
 ## FF13-2: 
 * Patch ```ffxiii2img.exe``` (you can use https://ntcore.com/?page_id=371)
