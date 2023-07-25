@@ -11,4 +11,7 @@ D3DPERF_SetMarker=_D3DPERF_SetMarker @24
 D3DPERF_SetOptions=_D3DPERF_SetOptions @25
 D3DPERF_SetRegion=_D3DPERF_SetRegion @26
 
+DebugSetLevel=_DebugSetLevel @27
+DebugSetMute=_DebugSetMute @28
 
+DirectInput8Create=_DirectInput8Create

@@ -14,7 +14,8 @@ HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) 
 	if (riid == __uuidof(this) ||
 		riid == __uuidof(IUnknown) ||
 		riid == __uuidof(IDirect3DDevice9) ||
-		riid == __uuidof(IDirect3DDevice9Ex))
+		riid == __uuidof(IDirect3DDevice9Ex) 
+		)
 	{
 		if (!m_is_ex && riid == __uuidof(IDirect3DDevice9Ex))
 		{
@@ -23,7 +24,10 @@ HRESULT APIENTRY hkIDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj) 
 			IDirect3DDevice9Ex* pIDirect3DDevice9Ex = nullptr;
 			HRESULT hr = m_pWrapped->QueryInterface(riid, reinterpret_cast<void**>(&pIDirect3DDevice9Ex));
 			if (FAILED(hr))
+			{
+				spdlog::trace("Error creating IDirect3DDevice9Ex: {:#X}", (unsigned long)hr);
 				return hr;
+			}
 
 			// release one reference from old one and take new IDirect3DDevice9Ex pointer 
 			m_pWrapped->Release();

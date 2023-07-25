@@ -147,13 +147,14 @@ public:
 	hkIDirect3DDevice9(IDirect3DDevice9Ex* pIDirect3DDevice9, bool is_ex)
 		: m_pWrapped(pIDirect3DDevice9), m_is_ex(is_ex)
 	{
+		AddRef();
 	}
 
 	virtual ~hkIDirect3DDevice9() { }
 
 private:
 	IDirect3DDevice9Ex* m_pWrapped;
-	ULONG m_ref = 1;
+	ULONG m_ref;
 	bool m_is_ex = false;
 };
 

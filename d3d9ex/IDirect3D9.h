@@ -35,13 +35,14 @@ public:
 	hkIDirect3D9(IDirect3D9Ex* pIDirect3D9)
 		: m_pWrapped(pIDirect3D9)
 	{
+		AddRef();
 	}
 
 	virtual ~hkIDirect3D9() { }
 
 private:
 	IDirect3D9Ex* m_pWrapped;
-	ULONG m_ref = 1;
+	ULONG m_ref;
 	bool m_is_ex = false;
 
 	template <typename T, bool ex>

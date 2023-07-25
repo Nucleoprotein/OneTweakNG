@@ -22,7 +22,10 @@ HRESULT APIENTRY hkIDirect3D9::QueryInterface(REFIID riid, void** ppvObj) {
 			IDirect3D9Ex* pIDirect3D9Ex = nullptr;
 			HRESULT hr = m_pWrapped->QueryInterface(riid, reinterpret_cast<void**>(&pIDirect3D9Ex));
 			if (FAILED(hr))
+			{
+				spdlog::trace("Error creating IDirect3D9Ex: {:#X}", (unsigned long)hr);
 				return hr;
+			}
 
 			// release one reference from old one and take new IDirect3DDevice9Ex pointer 
 			m_pWrapped->Release();

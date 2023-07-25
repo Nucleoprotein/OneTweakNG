@@ -78,6 +78,9 @@ public:
 	void (WINAPI* D3DPERF_SetOptions)(DWORD dwOptions);
 	void (WINAPI* D3DPERF_SetRegion)(D3DCOLOR col, LPCWSTR wszName);
 
+	HRESULT(WINAPI* DebugSetLevel)(DWORD level);
+	void (WINAPI* DebugSetMute)(void);
+
 	bool IsDXVK() { return m_isdxvk; }
 
 	D3D9DLL()
@@ -102,6 +105,9 @@ public:
 		StoreAddress(&D3DPERF_SetMarker, "D3DPERF_SetMarker");
 		StoreAddress(&D3DPERF_SetOptions, "D3DPERF_SetOptions");
 		StoreAddress(&D3DPERF_SetRegion, "D3DPERF_SetRegion");
+
+		StoreAddress(&DebugSetLevel, "DebugSetLevel");
+		StoreAddress(&DebugSetMute, "DebugSetMute");
 	}
 
 private:
@@ -154,5 +160,37 @@ extern "C"
 	void WINAPI _D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	{
 		return D3D9DLL::Get().D3DPERF_SetRegion(col, wszName);
+	}
+
+	HRESULT WINAPI _DebugSetLevel(DWORD level)
+	{
+		return D3D9DLL::Get().DebugSetLevel(level);
+	}
+
+	void WINAPI _DebugSetMute()
+	{
+		D3D9DLL::Get().DebugSetMute();
+	}
+}
+
+class DINPUT8DLL : public WrapperBase<DINPUT8DLL>
+{
+public:
+
+	HRESULT(WINAPI* DirectInput8Create)(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID* ppvOut, LPUNKNOWN punkOuter);
+
+	DINPUT8DLL()
+	{
+		WrapperLoad("dinput8.dll");
+
+		StoreAddress(&DirectInput8Create, "DirectInput8Create");
+	}
+};
+
+extern "C"
+{
+	HRESULT WINAPI _DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID* ppvOut, LPUNKNOWN punkOuter)
+	{
+		return DINPUT8DLL::Get().DirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 	}
 }
